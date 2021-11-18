@@ -17,6 +17,5 @@ d) Loopbacks
 
 e) Filtros de Roteamento
 
-![image](https://user-images.githubusercontent.com/42666125/111258702-143d4f00-8650-11eb-912c-f67ed77ddc8a.png)
-
+![image](https://user-images.githubusercontent.com/68615506/142449759-7c77f042-ebdb-41aa-89a5-fdbd4927b000.png)
 
