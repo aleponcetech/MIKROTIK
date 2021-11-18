@@ -1,0 +1,84 @@
+#########################################################################################################
+# Simple Pcc Loadbalance 4Wan                                                                           #
+# Author: Aleponce #                                                                                    #
+# Social: https://linkme.bio/aleponce #                                                                 #
+# Colabore: https://app.picpay.com/user/seuti #                                                         #
+##########################################################################################################
+Simple Pcc Loadbalance 4Wan
+#Rename ether as WAN1,WAN2,WAN3,WAN4,Local
+
+/ip address
+add address=192.168.0.1/24 network=192.168.0.0 broadcast=192.168.0.255 interface=Local
+add address=192.168.1.2/24 network=192.168.1.0 broadcast=192.168.1.255 interface=WAN1
+add address=192.168.2.2/24 network=192.168.2.0 broadcast=192.168.2.255 interface=WAN2
+add address=192.168.3.2/24 network=192.168.3.0 broadcast=192.168.3.255 interface=WAN3
+add address=192.168.4.2/24 network=192.168.4.0 broadcast=192.168.4.255 interface=WAN4
+ 
+/ip firewall mangle
+add chain=input in-interface=WAN1 action=mark-connection new-connection-mark=WAN1_conn
+add chain=input in-interface=WAN2 action=mark-connection new-connection-mark=WAN2_conn
+add chain=input in-interface=WAN3 action=mark-connection new-connection-mark=WAN3_conn
+add chain=input in-interface=WAN4 action=mark-connection new-connection-mark=WAN4_conn
+ 
+add chain=output connection-mark=WAN1_conn action=mark-routing new-routing-mark=to_WAN1
+add chain=output connection-mark=WAN2_conn action=mark-routing new-routing-mark=to_WAN2
+add chain=output connection-mark=WAN3_conn action=mark-routing new-routing-mark=to_WAN3
+add chain=output connection-mark=WAN4_conn action=mark-routing new-routing-mark=to_WAN4
+ 
+add chain=prerouting dst-address=192.168.1.0/24 action=accept in-interface=Local
+add chain=prerouting dst-address=192.168.2.0/24 action=accept in-interface=Local
+add chain=prerouting dst-address=192.168.3.0/24 action=accept in-interface=Local
+add chain=prerouting dst-address=192.168.4.0/24 action=accept in-interface=Local
+ 
+add chain=prerouting dst-address-type=!local in-interface=Local per-connection-classifier=both-addresses-and-ports:4/0 action=mark-connection new-connection-mark=WAN1_conn passthrough=yes
+add chain=prerouting dst-address-type=!local in-interface=Local per-connection-classifier=both-addresses-and-ports:4/1 action=mark-connection new-connection-mark=WAN2_conn passthrough=yes
+add chain=prerouting dst-address-type=!local in-interface=Local per-connection-classifier=both-addresses-and-ports:4/2 action=mark-connection new-connection-mark=WAN3_conn passthrough=yes
+add chain=prerouting dst-address-type=!local in-interface=Local per-connection-classifier=both-addresses-and-ports:4/3 action=mark-connection new-connection-mark=WAN4_conn passthrough=yes
+ 
+add chain=prerouting connection-mark=WAN1_conn in-interface=Local action=mark-routing new-routing-mark=to_WAN1
+add chain=prerouting connection-mark=WAN2_conn in-interface=Local action=mark-routing new-routing-mark=to_WAN2
+add chain=prerouting connection-mark=WAN3_conn in-interface=Local action=mark-routing new-routing-mark=to_WAN3
+add chain=prerouting connection-mark=WAN4_conn in-interface=Local action=mark-routing new-routing-mark=to_WAN4
+ 
+/ip route
+add dst-address=0.0.0.0/0 gateway=192.168.1.1 routing-mark=to_WAN1 check-gateway=ping
+add dst-address=0.0.0.0/0 gateway=192.168.2.1 routing-mark=to_WAN2 check-gateway=ping
+add dst-address=0.0.0.0/0 gateway=192.168.3.1 routing-mark=to_WAN3 check-gateway=ping
+add dst-address=0.0.0.0/0 gateway=192.168.4.1 routing-mark=to_WAN4 check-gateway=ping
+ 
+add dst-address=0.0.0.0/0 gateway=192.168.1.1 distance=1 check-gateway=ping
+add dst-address=0.0.0.0/0 gateway=192.168.2.1 distance=2 check-gateway=ping
+add dst-address=0.0.0.0/0 gateway=192.168.3.1 distance=3 check-gateway=ping
+add dst-address=0.0.0.0/0 gateway=192.168.4.1 distance=4 check-gateway=ping
+ 
+/ip firewall nat
+add chain=srcnat src-address=192.168.0.0/24 out-interface=WAN1 action=masquerade
+add chain=srcnat src-address=192.168.0.0/24 out-interface=WAN2 action=masquerade
+add chain=srcnat src-address=192.168.0.0/24 out-interface=WAN3 action=masquerade
+add chain=srcnat src-address=192.168.0.0/24 out-interface=WAN4 action=masquerade
+ 
+/ip dns set allow-remote-requests=yes cache-max-ttl=1w cache-size=5000KiB max-udp-packet-size=512 servers=8.8.8.8,4.2.2.6
+ 
+/ip dns static
+add address=192.168.0.1 disabled=yes name=dns ttl=1d
+ 
+/ip pool
+add name=dhcp_pool1 ranges=192.168.0.2-192.168.0.253
+ 
+/ip dhcp-server
+add add-arp=yes address-pool=dhcp_pool1 disabled=no interface=Local name=dhcp1
+ 
+/ip dhcp-server config
+set store-leases-disk=never
+ 
+/ip dhcp-server network
+add address=192.168.0.0/24 gateway=192.168.0.1
+ 
+/system clock
+set time-zone-name=manual
+ 
+/system clock manual
+set dst-delta=+00:00 dst-end="jan/01/1970 00:00:00" dst-start="jan/01/1970 00:00:00" time-zone=+05:00
+ 
+/system ntp client
+set enabled=yes mode=unicast primary-ntp=203.158.118.2 secondary-ntp=116.193.170.16
