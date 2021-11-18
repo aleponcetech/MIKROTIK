@@ -1,0 +1,47 @@
+#########################################################################################################
+# Rick Frey's Basic Failover with Netwatch                                                              #
+# Author: Aleponce #                                                                                    #
+# Social: https://linkme.bio/aleponce #                                                                 #
+# Colabore: https://app.picpay.com/user/seuti #                                                         #
+#########################################################################################################
+# License #                                                                                             #
+# This script has been created for use by the general public and may be used freely. #                  #
+#########################################################################################################
+# Features                                                                                              #                                                                             #
+# -Watches 2 WAN connections that are using DHCP to hand the addresses to the router.                   #
+# -Assumes WAN1 is the primary connection and that WAN2 should only be used when necessary.             #
+# -Periodically tests the connectivity through WAN1 to see if the connection has come back up.          #
+# -Tested on ROS 6.24                                                                                   #
+#########################################################################################################
+############################################################################################################################
+#### In this example WAN1 is connected to Ether1 and WAN2 is conected to Ether2.                                           #
+############################################################################################################################
+
+/ip dhcp-client
+add comment=WAN1 disabled=no interface=ether1
+add comment=WAN2 default-route-distance=2 disabled=no interface=ether2
+
+/tool netwatch
+add comment=WAN1 down-script="/ip dhcp-client set [ find comment=WAN1 ] default-\
+    route-distance=10\r\
+    \n\r\
+    \n/tool netwatch set [find comment=\"WAN2\"] disabled=no\r\
+    \n/tool netwatch set [find comment=\"WAN1\"] disabled=yes" host=8.8.8.8 \
+    interval=10s timeout=3s
+add comment=WAN2 disabled=yes down-script="/ip dhcp-client set [ find comment=WA\
+    N1 ] default-route-distance=1\r\
+    \n\r\
+    \n/tool netwatch set [find comment=\"WAN2\"] disabled=yes\r\
+    \n/tool netwatch set [find comment=\"WAN1\"] disabled=no" host=8.8.8.8 \
+    interval=10s timeout=3s
+
+############################################################################################################################
+#### Adjust the interval for scheduler as needed. Remember that every test potentially creates an Internet disruption.     #
+############################################################################################################################	
+
+/system scheduler
+add interval=1h name="Check WAN1 for Connectivity" on-event=\
+    "/ip dhcp-client set [ find comment=WAN1 ] default-route-distance=1\r\
+    \n" policy=ftp,reboot,read,write,policy,password,sniff,sensitive \
+    start-date=feb/03/1970 start-time=01:18:07
+

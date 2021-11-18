@@ -1,0 +1,874 @@
+#########################################################################################################
+# Basic MikroTik Firewall Rev 6.1 for IPv4#                                                             #
+#########################################################################################################
+# Author: Aleponce #                                                                                    #
+# Social: https://linkme.bio/aleponce #                                                                 #
+# Colabore: https://app.picpay.com/user/seuti #                                                         #
+#########################################################################################################
+# License #                                                                                             #
+# This script has been created for use by the general public and may be used freely. #                  #
+#########################################################################################################
+#########################################################################################################
+# Features
+# – Based mostly on a zone based defense. The two default zones are LAN & WAN
+# – Allows whitelisting & blacklisting of URLs
+# – Includes an advanced port scan detection
+# – Includes Joshaven Potter’s scripts for SpanHaus, dsheild, malc0de, and VOIP blacklists
+# – Detects and drops high connection rates
+# – Provides protection for the DNS proxy
+# – Includes brute force protection
+# – Provides protection for RotuerOS services
+# – Discriminates against BOGONS
+# – Drops Invalid connections
+# – Removes unusual protocols
+# – Protects against other attacks that are commonly disguised as originating from DNS servers
+# – Includes very basic virus protection
+# – Protects against multiple types of ICMP attacks including SMURF attacks
+# – Provides a variety of other common packet cleaning rules
+#########################################################################################################
+
+# Setup Instructions
+# Once the script has been applied to the router, you will need to set the interface that apply to the
+# Interface lists that are used ("WAN Interfaces" & "LAN Interfaces").
+
+ 
+
+# This section can left alone for most situations, however, if you are multi-homing, this could cause a
+# problem. In a multi-homed network, setting the rp-filter to no or loose may be the better choice.
+
+/ip settings
+set rp-filter=strict secure-redirects=no send-redirects=no tcp-syncookies=yes
+
+# These are just the list names. The interfaces still need to be added to the lists.
+/interface list
+add name="WAN Interfaces"
+add name="LAN Interfaces"
+
+# These scripts pull a signifcant number of addresses to the address list and will require higher end routers.
+# If you are using a router smaller than an RB1100, you may want to disable them.
+/system script
+add dont-require-permissions=no name=DownloadSpamhaus owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source=\
+"\
+\n/tool fetch url=\"http://joshaven.com/spamhaus.rsc\" mode=http;\
+\n:log info \"Downloaded spamhaus.rsc from Joshaven.com\";\
+\n"
+add dont-require-permissions=no name=ReplaceSpamhaus owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source=\
+"\
+\n/ip firewall address-list remove [find where comment=\"SpamHaus\"]\
+\n/import file-name=spamhaus.rsc;\
+\n:log info \"Removed old Spamhaus records and imported new list\";\
+\n"
+add dont-require-permissions=no name=Download_dshield owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source=\
+"\
+\n/tool fetch url=\"http://joshaven.com/dshield.rsc\" mode=http;\
+\n:log info \"Downloaded dshield.rsc from Joshaven.com\";\
+\n"
+add dont-require-permissions=no name=Replace_dshield owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source=\
+"\
+\n/ip firewall address-list remove [find where comment=\"DShield\"]\
+\n/import file-name=dshield.rsc;\
+\n:log info \"Removed old dshield records and imported new list\";\
+\n"
+add dont-require-permissions=no name=Download_malc0de owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source=\
+"\
+\n/tool fetch url=\"http://joshaven.com/malc0de.rsc\" mode=http;\
+\n:log info \"Downloaded malc0de.rsc from Joshaven.com\";\
+\n"
+add dont-require-permissions=no name=Replace_malc0de owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source=\
+"\
+\n/ip firewall address-list remove [find where comment=\"malc0de\"]\
+\n/import file-name=malc0de.rsc;\
+\n:log info \"Removed old malc0de records and imported new list\";\
+\n"
+add dont-require-permissions=no name=Download_voip-bl owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source=\
+"\
+\n/tool fetch url=\"http://joshaven.com/voip-bl.rsc\" mode=http;\
+\n:log info \"Downloaded voip-bl.rsc from Joshaven.com\";\
+\n"
+add dont-require-permissions=no name=Replace_voip-bl owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source=\
+"\
+\n/ip firewall address-list remove [find where comment=\"VoIP BL\"]\
+\n/import file-name=voip-bl.rsc;\
+\n:log info \"Removed old voip-bl records and imported new list\";\
+\n"
+
+/system scheduler
+add comment="Download spamnaus list" interval=3d name=DownloadSpamhausList on-event=DownloadSpamhaus policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=\
+jan/01/1970 start-time=16:38:01
+add comment="Apply spamnaus List" interval=3d name=InstallSpamhausList on-event=ReplaceSpamhaus policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=jan/01/1970 \
+start-time=16:43:01
+add comment="Download dshield list" interval=3d name=DownloadDShieldList on-event=Download_dshield policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=jan/01/1970 \
+start-time=16:48:01
+add comment="Apply dshield List" interval=3d name=InstallDShieldList on-event=Replace_dshield policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=jan/01/1970 \
+start-time=16:53:01
+add comment="Download malc0de list" interval=3d name=Downloadmalc0deList on-event=Download_malc0de policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=jan/01/1970 \
+start-time=16:48:01
+add comment="Apply malc0de List" interval=3d name=Installmalc0deList on-event=Replace_malc0de policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=jan/01/1970 \
+start-time=16:53:01
+add comment="Download voip-bl list" interval=3d name=Refresh_voip-bl on-event=Download_voip-bl policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=jan/01/1970 \
+start-time=16:48:01
+add comment="Apply voip-bl List" interval=3d name=Update_voip-bl on-event=Replace_voip-bl policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=jan/01/1970 \
+start-time=16:53:01
+
+# You will need to go through this list and add your DNS servers if they are not already here. You will also need to
+# disable or remove the address space which applies to your network in the Bogons List.
+/ip firewall address-list
+add address=192.168.0.0/16 list="LAN Subnets"
+add address=0.0.0.0/8 comment="RFC 1122 \"This host on this network\"" list=Bogons
+add address=10.0.0.0/8 comment="RFC 1918 (Private Use IP Space)" list=Bogons
+add address=100.64.0.0/10 comment="RFC 6598 (Shared Address Space)" list=Bogons
+add address=127.0.0.0/8 comment="RFC 1122 (Loopback)" list=Bogons
+add address=169.254.0.0/16 comment="RFC 3927 (Dynamic Configuration of IPv4 Link-Local Addresses)" list=Bogons
+add address=172.16.0.0/12 comment="RFC 1918 (Private Use IP Space)" list=Bogons
+add address=192.0.0.0/24 comment="RFC 6890 (IETF Protocol Assingments)" list=Bogons
+add address=192.0.2.0/24 comment="RFC 5737 (Test-Net-1)" list=Bogons
+add address=192.168.0.0/16 comment="RFC 1918 (Private Use IP Space)" disabled=yes list=Bogons
+add address=198.18.0.0/15 comment="RFC 2544 (Benchmarking)" list=Bogons
+add address=198.51.100.0/24 comment="RFC 5737 (Test-Net-2)" list=Bogons
+add address=203.0.113.0/24 comment="RFC 5737 (Test-Net-3)" list=Bogons
+add address=224.0.0.0/4 comment="RFC 5771 (Multicast Addresses) – Will affect OSPF, RIP, PIM, VRRP, IS-IS, and others. Use with caution.)" disabled=yes list=Bogons
+add address=240.0.0.0/4 comment="RFC 1112 (Reserved)" list=Bogons
+add address=192.31.196.0/24 comment="RFC 7535 (AS112-v4)" list=Bogons
+add address=192.52.193.0/24 comment="RFC 7450 (AMT)" list=Bogons
+add address=192.88.99.0/24 comment="RFC 7526 (Deprecated (6to4 Relay Anycast))" list=Bogons
+add address=192.175.48.0/24 comment="RFC 7534 (Direct Delegation AS112 Service)" list=Bogons
+add address=255.255.255.255 comment="RFC 919 (Limited Broadcast)" disabled=yes list=Bogons
+add address=10.0.0.0/8 list=LAN
+add address=172.16.0.0/12 list=LAN
+add address=192.168.0.0/16 list=LAN
+add address=8.8.8.8 comment=Google list="DNS Servers"
+add address=8.8.4.4 comment=Google list="DNS Servers"
+add address=4.2.2.1 comment="Level 3″ list="DNS Servers"
+add address=4.2.2.2 comment="Level 3″ list="DNS Servers"
+add address=208.67.222.222 comment=OpenDNS list="DNS Servers"
+add address=208.67.220.220 comment=OpenDNS list="DNS Servers"
+add address=1.1.1.1 comment=Cloudflare list="DNS Servers"
+add address=1.0.0.1 comment=Cloudflare list="DNS Servers"
+add address=4.2.2.3 comment="Level 3″ list="DNS Servers"
+add address=4.2.2.4 comment="Level 3″ list="DNS Servers"
+add address=4.2.2.5 comment="Level 3″ list="DNS Servers"
+add address=4.2.2.6 comment="Level 3″ list="DNS Servers"
+add address=www.mikrotik.com list="Whitelisted URLs"
+add address=www.rickfreyconsulting.com list="Whitelisted URLs"
+add address=www.joshaven.com list="Whitelisted URLs"
+add address=45.90.28.225 comment=NextDNS list="DNS Servers"
+add address=45.90.30.225 comment=NextDNS list="DNS Servers"
+add address=948953.dns.nextdns.io comment=NextDNS list="DNS Servers"
+add address=188.94.192.215 comment=FlastStart list="DNS Servers"
+add address=45.76.84.187 comment=FlastStart list="DNS Servers"
+add address=127.0.0.1 list="Exempt Addresses"
+add address=core.zeroday.ltd list="Blacklisted URLs"
+
+/ip firewall connection tracking
+set enabled=yes loose-tcp-tracking=no
+
+/ip firewall filter
+add action=accept chain=input comment="Accept Exempt IP Addresses – This is to\
+\_bypass the firwall all together. Use the Address Lists to add users to t\
+his rule." src-address-list="Exempt Addresses"
+add action=accept chain=forward comment="Accept Exempt IP Addresses – This is \
+to bypass the firwall all together. Use the Address Lists to add users to \
+this rule." src-address-list="Exempt Addresses"
+add action=accept chain=input comment="Accept Whitelisted URLs" \
+src-address-list="Whitelisted URLs"
+add action=accept chain=forward comment="Accept Whitelisted URLs" \
+src-address-list="Whitelisted URLs"
+add action=accept chain=forward comment="Accept Whitelisted URLs" \
+dst-address-list="Whitelisted URLs"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=input comment="Jump to DNS_DDoS Chain" jump-target=\
+DNS_DDoS port=53 protocol=udp
+add action=jump chain=forward comment="Jump to DNS_DDoS Chain" jump-target=\
+DNS_DDoS port=53 protocol=udp
+add action=accept chain=output comment="Accept DNS Requests from the router" \
+port=53 protocol=udp
+add action=accept chain=DNS_DDoS comment=\
+"Accept DNS Request from LAN – LAN IP Address List must be set!" port=53 \
+protocol=udp src-address-list=LAN
+add action=accept chain=DNS_DDoS comment="Accept Valid DNS Servers – Ensure th\
+at your DNS Servers are list on the DNS Servers Address List!" \
+dst-address-list="DNS Servers" in-interface-list="LAN Interfaces" port=53 \
+protocol=udp
+add action=accept chain=DNS_DDoS comment="Accept Valid DNS Servers – Ensure th\
+at your DNS Servers are list on the DNS Servers Address List!" \
+in-interface-list="WAN Interfaces" port=53 protocol=udp src-address-list=\
+"DNS Servers"
+add action=add-src-to-address-list address-list=DNS_DDoS \
+address-list-timeout=none-dynamic chain=DNS_DDoS comment=\
+"Add DNS_DDoS Offenders to Blacklist" port=53 protocol=udp
+add action=drop chain=DNS_DDoS comment="Drop DNS_DDoS Offenders" \
+src-address-list=DNS_DDoS
+add action=return chain=DNS_DDoS comment="Return from DNS_DDoS Chain"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=input comment="Jump to RFC SSH Chain" dst-port=22 \
+jump-target="RFC SSH Chain" protocol=tcp
+add action=add-src-to-address-list address-list="Black List (SSH)" \
+address-list-timeout=4w2d chain="RFC SSH Chain" comment=\
+"Transfer repeated attempts from SSH Stage 3 to Black-List" \
+connection-state=new dst-port=22 protocol=tcp src-address-list=\
+"SSH Stage 3″
+add action=add-src-to-address-list address-list="SSH Stage 3″ \
+address-list-timeout=1m chain="RFC SSH Chain" comment=\
+"Add succesive attempts to SSH Stage 3″ connection-state=new dst-port=22 \
+protocol=tcp src-address-list="SSH Stage 2″
+add action=add-src-to-address-list address-list="SSH Stage 2″ \
+address-list-timeout=1m chain="RFC SSH Chain" comment=\
+"Add succesive attempts to SSH Stage 2″ connection-state=new dst-port=22 \
+protocol=tcp src-address-list="SSH Stage 1″
+add action=add-src-to-address-list address-list="SSH Stage 1″ \
+address-list-timeout=1m chain="RFC SSH Chain" comment=\
+"Add intial attempt to SSH Stage 1 List" connection-state=new dst-port=22 \
+protocol=tcp
+add action=return chain="RFC SSH Chain" comment="Return From RFC SSH Chain"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=input comment="Jump to RFC Telnet Chain" dst-port=23 \
+jump-target="RFC Telnet Chain" protocol=tcp
+add action=add-src-to-address-list address-list="Black List (Telnet)" \
+address-list-timeout=4w2d chain="RFC Telnet Chain" comment=\
+"Transfer repeated attempts from Telnet Stage 3 to Black-List" \
+connection-state=new dst-port=23 protocol=tcp src-address-list=\
+"Telnet Stage 3″
+add action=add-src-to-address-list address-list="Telnet Stage 3″ \
+address-list-timeout=1m chain="RFC Telnet Chain" comment=\
+"Add succesive attempts to Telnet Stage 3″ connection-state=new dst-port=\
+23 protocol=tcp src-address-list="Telnet Stage 2″
+add action=add-src-to-address-list address-list="Telnet Stage 2″ \
+address-list-timeout=1m chain="RFC Telnet Chain" comment=\
+"Add succesive attempts to Telnet Stage 2″ connection-state=new dst-port=\
+23 protocol=tcp src-address-list="Telnet Stage 1″
+add action=add-src-to-address-list address-list="Telnet Stage 1″ \
+address-list-timeout=1m chain="RFC Telnet Chain" comment=\
+"Add Intial attempt to Telnet Stage 1″ connection-state=new dst-port=23 \
+protocol=tcp
+add action=return chain="RFC Telnet Chain" comment=\
+"Return From RFC Telnet Chain"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=input comment="Jump to RFC Winbox Chain" dst-port=8291 \
+jump-target="RFC Winbox Chain" protocol=tcp
+add action=add-src-to-address-list address-list="Black List (Winbox)" \
+address-list-timeout=4w2d chain="RFC Winbox Chain" comment=\
+"Transfer repeated attempts from Winbox Stage 3 to Black-List" \
+connection-state=new dst-port=8291 protocol=tcp src-address-list=\
+"Winbox Stage 3″
+add action=add-src-to-address-list address-list="Winbox Stage 3″ \
+address-list-timeout=1m chain="RFC Winbox Chain" comment=\
+"Add succesive attempts to Winbox Stage 3″ connection-state=new dst-port=\
+8291 protocol=tcp src-address-list="Winbox Stage 2″
+add action=add-src-to-address-list address-list="Winbox Stage 2″ \
+address-list-timeout=1m chain="RFC Winbox Chain" comment=\
+"Add succesive attempts to Winbox Stage 2″ connection-state=new dst-port=\
+8291 protocol=tcp src-address-list="Winbox Stage 1″
+add action=add-src-to-address-list address-list="Winbox Stage 1″ \
+address-list-timeout=1m chain="RFC Winbox Chain" comment=\
+"Add Intial attempt to Winbox Stage 1″ connection-state=new dst-port=8291 \
+protocol=tcp
+add action=return chain="RFC Winbox Chain" comment=\
+"Return From RFC Winbox Chain"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=input comment="Jump to RFC FTP Chain" dst-port=21 \
+jump-target="RFC FTP Chain" protocol=tcp src-port=!21 tcp-flags=\
+syn,!fin,!rst,!psh,!ack,!urg,!ece,!cwr
+add action=add-src-to-address-list address-list="Black List (FTP)" \
+address-list-timeout=4w2d chain="RFC FTP Chain" comment=\
+"Transfer repeated attempts from FTP Stage 3 to Black-List" \
+connection-state=new dst-port=21 nth=2,2 protocol=tcp src-address-list=\
+"FTP Stage 3″ tcp-flags=syn
+add action=add-src-to-address-list address-list="FTP Stage 3″ \
+address-list-timeout=1m chain="RFC FTP Chain" comment=\
+"Add succesive attempts to FTP Stage 3″ connection-state=new dst-port=21 \
+nth=2,2 protocol=tcp src-address-list="FTP Stage 2″ tcp-flags=syn
+add action=add-src-to-address-list address-list="FTP Stage 2″ \
+address-list-timeout=1m chain="RFC FTP Chain" comment=\
+"Add succesive attempts to FTP Stage 2″ connection-state=new dst-port=21 \
+nth=2,2 protocol=tcp src-address-list="FTP Stage 1″ tcp-flags=syn
+add action=add-src-to-address-list address-list="FTP Stage 1″ \
+address-list-timeout=1m chain="RFC FTP Chain" comment=\
+"Add Intial attempt to FTP Stage 1″ connection-state=new dst-port=21 nth=\
+2,2 protocol=tcp tcp-flags=syn
+add action=return chain="RFC FTP Chain" comment="Return From RFC FTP Chain"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=drop chain=input comment="Drop Invalid Connections from LAN" \
+connection-state=invalid in-interface-list="LAN Interfaces"
+add action=drop chain=forward comment="Drop Invalid Connections from LAN" \
+connection-state=invalid in-interface-list="LAN Interfaces"
+add action=drop chain=input comment="Drop Invalid Connections from WAN" \
+connection-state=invalid in-interface-list="WAN Interfaces"
+add action=drop chain=forward comment="Drop Invalid Connections from WAN" \
+connection-state=invalid in-interface-list="WAN Interfaces"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=add-src-to-address-list address-list="WAN High Connection Rates" \
+address-list-timeout=1d chain=input comment=\
+"Add WAN High Connections to Address List – Helps with DDoS Attacks" \
+connection-limit=100,32 in-interface-list="WAN Interfaces"
+add action=add-src-to-address-list address-list="LAN High Connection Rates" \
+address-list-timeout=1d chain=forward comment="Add LAN High Connections to\
+\_Address List – Helps identify compromised systems on your network" \
+connection-limit=500,32 in-interface-list="LAN Interfaces"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=forward comment="Jump to \"Manage Common Ports\" Chain" \
+jump-target="Manage Common Ports"
+add action=accept chain=output comment="Section Break"
+add action=accept chain=input comment=\
+"Accept Related or Established Connections" connection-state=\
+established,related
+add action=accept chain=forward comment=\
+"Accept Related or Established Connections" connection-state=\
+established,related
+add action=accept chain=forward comment="Accept New Connections" \
+connection-state=new in-interface-list="LAN Interfaces"
+add action=drop chain=forward comment=\
+"Drop all other Traffic on the Foward Chain" disabled=yes
+add action=drop chain=input comment=\
+"Drop all other Traffic on the Input Chain" disabled=yes
+/ip firewall nat
+add action=accept chain=dstnat comment="Accept Pi-Hole Server Traffic" port=\
+53 protocol=udp src-address=192.168.50.13
+add action=redirect chain=dstnat comment=\
+"Transparently proxy all DNS traffic" dst-port=53 protocol=udp \
+src-address-list="LAN Subnets" to-ports=53
+
+/ip firewall raw
+add action=accept chain=prerouting comment="Accept Exempt IP Addresses – This \
+is to bypass the firwall all together. Use the Address Lists to add users \
+to this rule." src-address-list="Exempt Addresses"
+add action=accept chain=prerouting comment="Accept Whitelisted URLs" \
+src-address-list="Whitelisted URLs"
+add action=accept chain=prerouting comment="Accept Whitelisted URLs" \
+dst-address-list="Whitelisted URLs"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=prerouting comment="Jump to RFC Port Scans" \
+jump-target="RFC Port Scans" protocol=tcp
+add action=jump chain=prerouting comment="Jump to RFC Port Scans" \
+jump-target="RFC Port Scans" protocol=udp src-address-list="!DNS Servers"
+add action=add-src-to-address-list address-list="WAN Port Scanners" \
+address-list-timeout=none-dynamic chain="RFC Port Scans" comment=\
+"Detect WAN TCP Port Scans" in-interface-list="WAN Interfaces" protocol=\
+tcp psd=21,3s,3,1
+add action=add-src-to-address-list address-list="WAN Port Scanners" \
+address-list-timeout=none-dynamic chain="RFC Port Scans" comment=\
+"Detect WAN UDP Port Scans" in-interface-list="WAN Interfaces" protocol=\
+udp psd=21,3s,3,1
+add action=add-src-to-address-list address-list="WAN Port Scanners" \
+address-list-timeout=2w chain="RFC Port Scans" comment=\
+"Detect WAN NMAP FIN Stealth scan" in-interface-list="WAN Interfaces" \
+protocol=tcp tcp-flags=fin,!syn,!rst,!psh,!ack,!urg
+add action=add-src-to-address-list address-list="WAN Port Scanners" \
+address-list-timeout=2w chain="RFC Port Scans" comment=\
+"Detect WAN SYN/FIN scan" in-interface-list="WAN Interfaces" protocol=tcp \
+tcp-flags=fin,syn
+add action=add-src-to-address-list address-list="WAN Port Scanners" \
+address-list-timeout=2w chain="RFC Port Scans" comment=\
+"Detect WAN SYN/RST scan" in-interface-list="WAN Interfaces" protocol=tcp \
+tcp-flags=syn,rst
+add action=add-src-to-address-list address-list="port scanners" \
+address-list-timeout=2w chain="RFC Port Scans" comment=\
+"Detect WAN FIN/PSH/URG scan" in-interface-list="WAN Interfaces" \
+protocol=tcp tcp-flags=fin,psh,urg,!syn,!rst,!ack
+add action=add-src-to-address-list address-list="WAN Port Scanners" \
+address-list-timeout=2w chain="RFC Port Scans" comment=\
+"Detect WAN ALL/ALL scan" in-interface-list="WAN Interfaces" protocol=tcp \
+tcp-flags=fin,syn,rst,psh,ack,urg
+add action=add-src-to-address-list address-list="WAN Port Scanners" \
+address-list-timeout=2w chain="RFC Port Scans" comment=\
+"Detect WAN NMAP NULL scan" in-interface-list="WAN Interfaces" protocol=\
+tcp tcp-flags=!fin,!syn,!rst,!psh,!ack,!urg
+add action=add-src-to-address-list address-list="LAN Port Scanners" \
+address-list-timeout=none-dynamic chain="RFC Port Scans" comment=\
+"Detect LAN TCP Port Scans" in-interface-list="LAN Interfaces" protocol=\
+tcp psd=21,3s,3,1
+add action=add-src-to-address-list address-list="LAN Port Scanners" \
+address-list-timeout=none-dynamic chain="RFC Port Scans" comment=\
+"Detect LAN UDP Port Scans" in-interface-list="LAN Interfaces" protocol=\
+udp psd=21,3s,3,1
+add action=add-src-to-address-list address-list="LAN Port Scanners" \
+address-list-timeout=2w chain="RFC Port Scans" comment=\
+"Detect LAN NMAP FIN Stealth scan" in-interface-list="LAN Interfaces" \
+protocol=tcp tcp-flags=fin,!syn,!rst,!psh,!ack,!urg
+add action=add-src-to-address-list address-list="LAN Port Scanners" \
+address-list-timeout=2w chain="RFC Port Scans" comment=\
+"Detect LAN SYN/FIN scan" in-interface-list="LAN Interfaces" protocol=tcp \
+tcp-flags=fin,syn
+add action=add-src-to-address-list address-list="LAN Port Scanners" \
+address-list-timeout=2w chain="RFC Port Scans" comment=\
+"Detect LAN SYN/RST scan" in-interface-list="LAN Interfaces" protocol=tcp \
+tcp-flags=syn,rst
+add action=add-src-to-address-list address-list="LAN Port Scanners" \
+address-list-timeout=2w chain="RFC Port Scans" comment=\
+"Detect LAN FIN/PSH/URG scan" in-interface-list="LAN Interfaces" \
+protocol=tcp tcp-flags=fin,psh,urg,!syn,!rst,!ack
+add action=add-src-to-address-list address-list="LAN Port Scanners" \
+address-list-timeout=2w chain="RFC Port Scans" comment=\
+"Detect LAN ALL/ALL scan" in-interface-list="LAN Interfaces" protocol=tcp \
+tcp-flags=fin,syn,rst,psh,ack,urg
+add action=add-src-to-address-list address-list="LAN Port Scanners" \
+address-list-timeout=2w chain="RFC Port Scans" comment=\
+"Detect LAN NMAP NULL scan" in-interface-list="LAN Interfaces" protocol=\
+tcp tcp-flags=!fin,!syn,!rst,!psh,!ack,!urg
+add action=return chain="RFC Port Scans" comment="Return from RFC Port Scans"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=drop chain=prerouting comment=\
+"Drop anyone in the Black List (Manually Added)" src-address-list=\
+"Manually Added Black List"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the Black List (Manually Added)" dst-address-list=\
+"Manually Added Black List"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the Black List (SSH)" src-address-list="Black List (SSH)"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the Black List (SSH)" dst-address-list="Black List (SSH)"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the Black List (Telnet)" src-address-list=\
+"Black List (Telnet)"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the Black List (Telnet)" dst-address-list=\
+"Black List (Telnet)"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the Black List (Winbox)" src-address-list=\
+"Black List (Winbox)"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the Black List (Winbox)" dst-address-list=\
+"Black List (Winbox)"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the Black List (FTP)" src-address-list="Black List (FTP)"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the Black List (FTP)" dst-address-list="Black List (FTP)"
+add action=drop chain=prerouting comment="Drop all packets on Joshaven Potter’\
+s Blacklist for SpamHaus, dshield, and malc0de" src-address-list=\
+blacklist
+add action=drop chain=prerouting comment="Drop all packets on Joshaven Potter’\
+s Blacklist for SpamHaus, dshield, and malc0de" dst-address-list=\
+blacklist
+add action=drop chain=prerouting comment=\
+"Drop all packets on Joshaven Potter’s VOIP Blacklist" src-address-list=\
+voip-blacklist
+add action=drop chain=prerouting comment=\
+"Drop all packets on Joshaven Potter’s VOIP Blacklist" dst-address-list=\
+voip-blacklist
+add action=drop chain=prerouting comment=\
+"Drop anyone in the WAN Port Scanner List" src-address-list=\
+"WAN Port Scanners"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the WAN Port Scanner List" dst-address-list=\
+"WAN Port Scanners"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the LAN Port Scanner List" src-address-list=\
+"LAN Port Scanners"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the LAN Port Scanner List" dst-address-list=\
+"LAN Port Scanners"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the WAN High Connections List" src-address-list=\
+"WAN High Connection Rates"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the WAN High Connections List" dst-address-list=\
+"WAN High Connection Rates"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the LAN High Connections List" src-address-list=\
+"LAN High Connection Rates"
+add action=drop chain=prerouting comment=\
+"Drop anyone in the LAN High Connections List" dst-address-list=\
+"LAN High Connection Rates"
+add action=drop chain=prerouting comment="Drop all Blacklisted URLs" \
+src-address-list="Blacklisted URLs"
+add action=drop chain=prerouting comment="Drop all Blacklisted URLs" \
+dst-address-list="Blacklisted URLs"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=prerouting comment="Jump to RFC Bogon Chain" \
+jump-target="RFC Bogon Chain"
+add action=drop chain="RFC Bogon Chain" comment=\
+"Drop all packets soured from Bogons" src-address-list=Bogons
+add action=drop chain="RFC Bogon Chain" comment=\
+"Drop all packets destined to Bogons" dst-address-list=Bogons
+add action=return chain="RFC Bogon Chain" comment=\
+"Return from RFC Bogon Chain"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=prerouting comment="Protect RouterOS Services" \
+jump-target="Protect RouterOS Services"
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow BW Test Server from LAN" in-interface-list="LAN Interfaces" port=\
+2000 protocol=udp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow MAC Winbox from the LAN" in-interface-list="LAN Interfaces" port=\
+20561 protocol=udp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow Bootstrap and DHCP from LAN" in-interface-list="LAN Interfaces" \
+port=67-68 protocol=udp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow SNMP from LAN" in-interface-list="LAN Interfaces" port=161,162 \
+protocol=udp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow RIP from LAN" in-interface-list="LAN Interfaces" port=520,521 \
+protocol=udp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow DHCPv6 Client and Server Messages from LAN" in-interface-list=\
+"LAN Interfaces" port=546,547 protocol=udp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow LDP Transport Session from LAN" in-interface-list="LAN Interfaces" \
+port=646 protocol=tcp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow LDP Hello Messages from LAN" in-interface-list="LAN Interfaces" \
+port=646 protocol=udp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow RSVP TE Tunnels from LAN" in-interface-list="LAN Interfaces" port=\
+1698,1699 protocol=udp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow L2TP from LAN & WAN" port=1701 protocol=udp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow PPTP from LAN & WAN" port=1723 protocol=tcp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow BGP (TCP 179) from LAN & WAN" port=179 protocol=tcp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow CAPsMAN from LAN" in-interface-list="LAN Interfaces" port=\
+5246,5247 protocol=udp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow IGMP/ Multicast from LAN" in-interface-list="LAN Interfaces" \
+protocol=igmp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow PIM/ Multicast from LAN" in-interface-list="LAN Interfaces" \
+protocol=pim
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow OSPF from LAN" in-interface-list="LAN Interfaces" protocol=ospf
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow GRE from LAN & WAN" protocol=gre
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow ESP LAN & WAN" protocol=ipsec-esp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow AH from LAN & WAN" protocol=ipsec-ah
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow VRRP from LAN & WAN" protocol=vrrp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow OpenFlow from LAN & WAN" port=6343 protocol=tcp
+add action=accept chain="Protect RouterOS Services" comment=\
+"Allow MNDP from LAN" in-interface-list="LAN Interfaces" port=5678 \
+protocol=udp
+add action=drop chain="Protect RouterOS Services" comment=\
+"Drop attempts to access the SOCKs Proxy" log=yes log-prefix=FW-SOCKS \
+port=1080 protocol=tcp
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=prerouting comment="RFC Unusual Protocols" jump-target=\
+"RFC Unusual Protocols"
+add action=drop chain="RFC Unusual Protocols" comment=\
+"Drop GGP (Gateway to Gateway Protocol – Obsolete)" protocol=ggp
+add action=drop chain="RFC Unusual Protocols" comment=\
+"Drop GGP (Internet Stream Protocol – Obsolete)" protocol=st
+add action=drop chain="RFC Unusual Protocols" comment=\
+"Drop EGP (Exterior Gateway Protocol – Obsolete)" protocol=egp
+add action=drop chain="RFC Unusual Protocols" comment=\
+"Drop PUP (PARC Universal Packet Protocol – Obsolete)" protocol=pup
+add action=drop chain="RFC Unusual Protocols" comment=\
+"Drop HMP (Host Monitoring Protocol – Obsolete)" protocol=hmp
+add action=drop chain="RFC Unusual Protocols" comment="Drop XNS-IDP (Xerox Net\
+work Systems Internet Datagram Protocol – Obsolete)" protocol=xns-idp
+add action=drop chain="RFC Unusual Protocols" comment=\
+"Drop XTP (Xpress Transport Protocol – Obsolete)" protocol=xtp
+add action=drop chain="RFC Unusual Protocols" comment=\
+"Drop RSPF (Radio Shortest Path First – Not applicable to most people)" \
+protocol=rspf
+add action=drop chain="RFC Unusual Protocols" comment="Drop VMTP (Versatile Me\
+ssage Transaction Protocol – Not applicable to most people)" protocol=\
+vmtp
+add action=return chain="RFC Unusual Protocols" comment=\
+"Return from RFC Unusual Protocols"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=drop chain=prerouting comment="Drop packets that contain yersinia" \
+content=yersinia
+add action=drop chain=prerouting comment="Drop packets that contain kali" \
+content=kali
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=prerouting comment="Jump to TCP Protection" \
+jump-target="RFC TCP Protection" protocol=tcp
+add action=drop chain="RFC TCP Protection" comment=\
+"Drop all TCP Resets from WAN" in-interface-list="WAN Interfaces" \
+protocol=tcp src-address-list="DNS Servers" tcp-flags=rst
+add action=drop chain="RFC TCP Protection" comment=\
+"Drop all TCP sourced from common DNS Servers" dst-port=!53 \
+in-interface-list="WAN Interfaces" protocol=tcp src-address-list=\
+"DNS Servers" tcp-flags=""
+add action=return chain="RFC TCP Protection" comment=\
+"Return from TCP Protection" protocol=tcp
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=prerouting comment="Jump to Virus Chain" jump-target=\
+Virus protocol=tcp
+add action=jump chain=prerouting comment="Jump to Virus Chain" jump-target=\
+Virus protocol=udp
+add action=drop chain=Virus comment="Drop Blaster Worm" dst-port=135-139 \
+protocol=tcp
+add action=drop chain=Virus comment="Drop Blaster Worm" dst-port=445 \
+protocol=tcp
+add action=drop chain=Virus comment="Drop Blaster Worm" dst-port=445 \
+protocol=udp
+add action=drop chain=Virus comment="Drop Messenger Worm" dst-port=135-139 \
+protocol=udp
+add action=drop chain=Virus comment=Conficker dst-port=593 protocol=tcp
+add action=drop chain=Virus comment=Worm dst-port=1024-1030 protocol=tcp
+add action=drop chain=Virus comment="ndm requester" dst-port=1363 protocol=\
+tcp
+add action=drop chain=Virus comment="ndm server" dst-port=1364 protocol=tcp
+add action=drop chain=Virus comment="screen cast" dst-port=1368 protocol=tcp
+add action=drop chain=Virus comment=hromgrafx dst-port=1373 protocol=tcp
+add action=drop chain=Virus comment="Drop MyDoom" dst-port=1080 protocol=tcp
+add action=drop chain=Virus comment=cichlid dst-port=1377 protocol=tcp
+add action=drop chain=Virus comment=Worm dst-port=1433-1434 protocol=tcp
+add action=drop chain=Virus comment="Drop Dumaru.Y" dst-port=2283 protocol=\
+tcp
+add action=drop chain=Virus comment="Drop Beagle" dst-port=2535 protocol=tcp
+add action=drop chain=Virus comment="Drop Beagle.C-K" dst-port=2745 protocol=\
+tcp
+add action=drop chain=Virus comment="Drop MyDoom" dst-port=3127-3128 \
+protocol=tcp
+add action=drop chain=Virus comment="Drop Backdoor OptixPro" dst-port=3410 \
+protocol=tcp
+add action=drop chain=Virus comment="Drop Sasser" dst-port=5554 protocol=tcp
+add action=drop chain=Virus comment=Worm dst-port=4444 protocol=tcp
+add action=drop chain=Virus comment=Worm dst-port=4444 protocol=udp
+add action=drop chain=Virus comment="Drop Beagle.B" dst-port=8866 protocol=\
+tcp
+add action=drop chain=Virus comment="Drop Dabber.A-B" dst-port=9898 protocol=\
+tcp
+add action=drop chain=Virus comment="Drop Dumaru.Y" dst-port=10000 protocol=\
+tcp
+add action=drop chain=Virus comment="Drop MyDoom.B" dst-port=10080 protocol=\
+tcp
+add action=drop chain=Virus comment="Drop NetBus" dst-port=12345 protocol=tcp
+add action=drop chain=Virus comment="Drop Kuang2″ dst-port=17300 protocol=tcp
+add action=drop chain=Virus comment="Drop SubSeven" dst-port=27374 protocol=\
+tcp
+add action=drop chain=Virus comment="Drop PhatBot, Agobot, Gaobot" dst-port=\
+65506 protocol=tcp
+add action=return chain=Virus comment="Return From Virus Chain"
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=prerouting comment="Jump to RFC ICMP Protection Chain" \
+jump-target="RFC ICMP Protection" protocol=icmp
+add action=add-dst-to-address-list address-list="Suspected SMURF Attacks" \
+address-list-timeout=none-dynamic chain="RFC ICMP Protection" comment=\
+"Detect Suspected SMURF Attacks" dst-address-type=broadcast log=yes \
+log-prefix="FW-SMURF Attacks" protocol=icmp
+add action=drop chain="RFC ICMP Protection" comment=\
+"Drop Suspected SMURF Attacks" dst-address-list="Suspected SMURF Attacks" \
+protocol=icmp
+add action=accept chain="RFC ICMP Protection" comment="Accept Echo Requests" \
+icmp-options=8:0 protocol=icmp
+add action=accept chain="RFC ICMP Protection" comment="Accept Echo Replys" \
+icmp-options=0:0 protocol=icmp
+add action=accept chain="RFC ICMP Protection" comment=\
+"Accept Destination Network Unreachable" icmp-options=3:0 protocol=icmp
+add action=accept chain="RFC ICMP Protection" comment=\
+"Accept Destination Host Unreachable" icmp-options=3:1 protocol=icmp
+add action=accept chain="RFC ICMP Protection" comment=\
+"Accept Destination Port Unreachable" icmp-options=3:3 protocol=icmp
+add action=accept chain="RFC ICMP Protection" comment=\
+"Fragmentation Messages" icmp-options=3:4 protocol=icmp
+add action=accept chain="RFC ICMP Protection" comment="Source Route Failed" \
+icmp-options=3:5 protocol=icmp
+add action=accept chain="RFC ICMP Protection" comment=\
+"Network Admin Prohibited" icmp-options=3:9 protocol=icmp
+add action=accept chain="RFC ICMP Protection" comment="Host Admin Prohibited" \
+icmp-options=3:10 protocol=icmp
+add action=accept chain="RFC ICMP Protection" comment="Router Advertisemnet" \
+icmp-options=9:0 protocol=icmp
+add action=accept chain="RFC ICMP Protection" comment="Router Solicitation" \
+icmp-options=9:10 protocol=icmp
+add action=accept chain="RFC ICMP Protection" comment="Time Exceeded" \
+icmp-options=11:0-255 protocol=icmp
+add action=accept chain="RFC ICMP Protection" comment=Traceroute \
+icmp-options=30:0 protocol=icmp
+add action=drop chain="RFC ICMP Protection" comment=\
+"Drop ALL other ICMP Messages" log=yes log-prefix="FW-ICMP Protection" \
+protocol=icmp
+add action=accept chain=output comment="Section Break" disabled=yes
+add action=jump chain=prerouting comment=\
+"Jump to \"Manage Common Ports\" Chain" jump-target="Manage Common Ports"
+add action=accept chain="Manage Common Ports" comment=\
+"\"All hosts on this subnet\" Broadcast" src-address=224.0.0.1
+add action=accept chain="Manage Common Ports" comment=\
+"\"All routers on this subnet\" Broadcast" src-address=224.0.0.2
+add action=accept chain="Manage Common Ports" comment=\
+"DVMRP (Distance Vector Multicast Routing Protocol)" src-address=\
+224.0.0.4
+add action=accept chain="Manage Common Ports" comment=\
+"OSPF – All OSPF Routers Broadcast" src-address=224.0.0.5
+add action=accept chain="Manage Common Ports" comment=\
+"OSPF – OSPF DR Routers Broadcast" src-address=224.0.0.6
+add action=accept chain="Manage Common Ports" comment="RIP Broadcast" \
+src-address=224.0.0.9
+add action=accept chain="Manage Common Ports" comment="EIGRP Broadcast" \
+src-address=224.0.0.10
+add action=accept chain="Manage Common Ports" comment="PIM Broadcast" \
+src-address=224.0.0.13
+add action=accept chain="Manage Common Ports" comment="VRRP Broadcast" \
+src-address=224.0.0.18
+add action=accept chain="Manage Common Ports" comment="IS-IS Broadcast" \
+src-address=224.0.0.19
+add action=accept chain="Manage Common Ports" comment="IS-IS Broadcast" \
+src-address=224.0.0.20
+add action=accept chain="Manage Common Ports" comment="IS-IS Broadcast" \
+src-address=224.0.0.21
+add action=accept chain="Manage Common Ports" comment="IGMP Broadcast" \
+src-address=224.0.0.22
+add action=accept chain="Manage Common Ports" comment=\
+"GRE Protocol (Local Management)" protocol=gre
+add action=accept chain="Manage Common Ports" comment="FTPdata transfer" \
+port=20 protocol=tcp
+add action=accept chain="Manage Common Ports" comment="FTPdata transfer " \
+port=20 protocol=udp
+add action=accept chain="Manage Common Ports" comment="FTPcontrol (command)" \
+port=21 protocol=tcp
+add action=accept chain="Manage Common Ports" comment="Secure Shell(SSH)" \
+port=22 protocol=tcp
+add action=accept chain="Manage Common Ports" comment="Secure Shell(SSH) " \
+port=22 protocol=udp
+add action=accept chain="Manage Common Ports" comment=Telnet port=23 \
+protocol=tcp
+add action=accept chain="Manage Common Ports" comment=Telnet port=23 \
+protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"Priv-mail: any privatemailsystem." port=24 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Priv-mail: any privatemailsystem. " port=24 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"Simple Mail Transfer Protocol(SMTP)" port=25 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Simple Mail Transfer Protocol(SMTP) " port=25 protocol=udp
+add action=accept chain="Manage Common Ports" comment="TIME protocol" port=37 \
+protocol=tcp
+add action=accept chain="Manage Common Ports" comment="TIME protocol " port=\
+37 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"ARPA Host Name Server Protocol & WINS" port=42 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"ARPA Host Name Server Protocol & WINS " port=42 protocol=udp
+add action=accept chain="Manage Common Ports" comment="WHOIS protocol" port=\
+43 protocol=tcp
+add action=accept chain="Manage Common Ports" comment="WHOIS protocol" port=\
+43 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"Domain Name System (DNS)" port=53 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Domain Name System (DNS)" port=53 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"Mail Transfer Protocol(RFC 780)" port=57 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"(BOOTP) Server & (DHCP) " port=67 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"(BOOTP) Client & (DHCP) " port=68 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"Trivial File Transfer Protocol (TFTP) " port=69 protocol=udp
+add action=accept chain="Manage Common Ports" comment="Gopher protocol" port=\
+70 protocol=tcp
+add action=accept chain="Manage Common Ports" comment="Finger protocol" port=\
+79 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Hypertext Transfer Protocol (HTTP)" port=80 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"RemoteTELNETService protocol" port=107 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Post Office Protocolv2 (POP2)" port=109 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Post Office Protocolv3 (POP3)" port=110 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"IdentAuthentication Service/Identification Protocol" port=113 protocol=\
+tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Authentication Service (auth) " port=113 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"Simple File Transfer Protocol (SFTP)" port=115 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Network Time Protocol(NTP)" port=123 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"NetBIOSNetBIOS Name Service" port=137 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"NetBIOSNetBIOS Name Service " port=137 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"NetBIOSNetBIOS Datagram Service" port=138 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"NetBIOSNetBIOS Datagram Service " port=138 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"NetBIOSNetBIOS Session Service" port=139 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"NetBIOSNetBIOS Session Service " port=139 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"Internet Message Access Protocol (IMAP)" port=143 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Background File Transfer Program (BFTP)" port=152 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Background File Transfer Program (BFTP) " port=152 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"SGMP,Simple Gateway Monitoring Protocol" port=153 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"SGMP,Simple Gateway Monitoring Protocol " port=153 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"DMSP, Distributed Mail Service Protocol" port=158 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"DMSP, Distributed Mail Service Protocol " port=158 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"Simple Network Management Protocol(SNMP) " port=161 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"Simple Network Management ProtocolTrap (SNMPTRAP)" port=162 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Simple Network Management ProtocolTrap (SNMPTRAP) " port=162 protocol=\
+udp
+add action=accept chain="Manage Common Ports" comment=\
+"BGP (Border Gateway Protocol)" port=179 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Internet Message Access Protocol (IMAP), version 3″ port=220 protocol=\
+tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Internet Message Access Protocol (IMAP), version 3″ port=220 protocol=\
+udp
+add action=accept chain="Manage Common Ports" comment=\
+"BGMP, Border Gateway Multicast Protocol" port=264 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"BGMP, Border Gateway Multicast Protocol " port=264 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"Lightweight Directory Access Protocol (LDAP)" port=389 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Lightweight Directory Access Protocol (LDAP)" port=389 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"SSTP TCP Port 443 (Local Management) & HTTPS" port=443 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Microsoft-DSActive Directory, Windows shares" port=445 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"L2TP/ IPSEC UDP Port 500 (Local Management)" port=500 protocol=udp
+add action=accept chain="Manage Common Ports" comment="Modbus, Protocol" \
+port=502 protocol=tcp
+add action=accept chain="Manage Common Ports" comment="Modbus, Protocol " \
+port=502 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"Shell (Remote Shell, rsh, remsh)" port=514 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Syslog – used for system logging " port=514 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"Routing Information Protocol (RIP) " port=520 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"e-mail message submission (SMTP)" port=587 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"LDP,Label Distribution Protocol" port=646 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"LDP,Label Distribution Protocol" port=646 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"FTPS Protocol (data):FTP over TLS/SSL" port=989 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"FTPS Protocol (data):FTP over TLS/SSL" port=989 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"FTPS Protocol (control):FTP over TLS/SSL" port=990 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"FTPS Protocol (control):FTP over TLS/SSL" port=990 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"TELNET protocol overTLS/SSL" port=992 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"TELNET protocol overTLS/SSL" port=992 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"Internet Message Access Protocol over TLS/SSL (IMAPS)" port=993 \
+protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"Post Office Protocol3 over TLS/SSL (POP3S)" port=995 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"OVPN TCP Port 1194 (Local Management)" port=1194 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"PPTP Port 1723 (Local Management)" port=1723 protocol=tcp
+add action=accept chain="Manage Common Ports" comment=\
+"L2TP UDP Port 1701 (Local Management)" port=1701 protocol=udp
+add action=accept chain="Manage Common Ports" comment=\
+"L2TP UDP Port 4500 (Local Management)" port=4500 protocol=udp
+add action=accept chain=output comment="Section Break" disabled=yes
+

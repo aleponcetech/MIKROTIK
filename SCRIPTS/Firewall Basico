@@ -1,0 +1,81 @@
+# 1º Porta UTP 53
+/ip firewall filter add action=drop chain=input comment="Bloqueio Porta 53" dst-port=53 protocol=tcp
+/ip firewall filter add action=drop chain=input comment="Bloqueio Porta 53 Externo" dst-port=53 in-interface=ether1 protocol=udp
+
+# 2º Scaners de portas externas
+/ip firewall filter
+add action=drop chain=input comment="Scanners de portas bloqueio 8/8" src-address-list="port scanners"
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=input comment="Scanners de portas Listar 1/8" protocol=tcp psd=21,3s,3,1
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=input comment="Scanners de portas NMAP FIN Stealth 2/8" protocol=tcp tcp-flags=fin,!syn,!rst,!psh,!ack,!urg
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=input comment="Scanners de portas SYN/FIN 3/8" protocol=tcp tcp-flags=fin,syn
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=input comment="Scanners de portas SYN/RST 4/8" protocol=tcp tcp-flags=syn,rst
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=input comment="Scanners de portas FIN/PSH/URG 5/8" protocol=tcp tcp-flags=fin,psh,urg,!syn,!rst,!ack
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=input comment="Scanners de portas ALL/ALL 6/8" protocol=tcp tcp-flags=fin,syn,rst,psh,ack,urg
+add action=add-src-to-address-list address-list="port scanners" address-list-timeout=2w chain=input comment="Scanners de portas NMAP NULL 7/8" protocol=tcp tcp-flags=!fin,!syn,!rst,!psh,!ack,!urg
+
+# 3º BruteForce no FTP
+/ip firewall filter
+add action=drop chain=input comment="Prote\E7\E3o ftp BruteForce 3/3" dst-port=20-21 protocol=tcp src-address-list=ftp_blacklist
+add action=add-dst-to-address-list address-list=ftp_blacklist address-list-timeout=1w chain=output comment="Prote\E7\E3o ftp BruteForce 1/3" content="530 Login incorrect" protocol=tcp
+add action=accept chain=output comment="Prote\E7\E3o ftp BruteForce 2/3" content="530 Login incorrect" dst-limit=1/1m,9,dst-address/1m protocol=tcp
+
+# 4º BruteForce no ssh
+/ip firewall filter
+add action=drop chain=input comment="Prote\E7\E3o ssh BruteForce 5/6" dst-port=22 protocol=tcp src-address-list=ssh_blacklist
+add action=drop chain=forward comment="Prote\E7\E3o ssh BruteForce 6/6" dst-port=22 protocol=tcp src-address-list=ssh_blacklist
+add action=add-src-to-address-list address-list=ssh_blacklist address-list-timeout=1w chain=input comment="Prote\E7\E3o ssh BruteForce 4/6" connection-state=new dst-port=22 protocol=tcp src-address-list=ssh_stage3
+add action=add-src-to-address-list address-list=ssh_stage3 address-list-timeout=30m chain=input comment="Prote\E7\E3o ssh BruteForce 3/6" connection-state=new dst-port=22 protocol=tcp src-address-list=ssh_stage2
+add action=add-src-to-address-list address-list=ssh_stage2 address-list-timeout=30m chain=input comment="Prote\E7\E3o ssh BruteForce 2/6" connection-state=new dst-port=22 protocol=tcp src-address-list=ssh_stage1
+add action=add-src-to-address-list address-list=ssh_stage1 address-list-timeout=30m chain=input comment="Prote\E7\E3o ssh BruteForce 1/6" connection-state=new dst-port=22 protocol=tcp
+
+# 5º BruteForce no WinBox
+/ip firewall filter
+add action=drop chain=input comment="Prote\E7\E3o winbox BruteForce 5/6" dst-port=8291 protocol=tcp src-address-list=winbox_blacklist
+add action=drop chain=forward comment="Prote\E7\E3o winbox BruteForce 6/6" dst-port=8291 protocol=tcp src-address-list=winbox_blacklist
+add action=add-src-to-address-list address-list=winbox_blacklist address-list-timeout=1w chain=input comment="Prote\E7\E3o winbox BruteForce 4/6" connection-state=new dst-port=8291 protocol=tcp src-address-list=winbox_stage3
+add action=add-src-to-address-list address-list=winbox_stage3 address-list-timeout=30m chain=input comment="Prote\E7\E3o winbox BruteForce 3/6" connection-state=new dst-port=8291 protocol=tcp src-address-list=winbox_stage2
+add action=add-src-to-address-list address-list=winbox_stage2 address-list-timeout=30m chain=input comment="Prote\E7\E3o winbox BruteForce 2/6" connection-state=new dst-port=8291 protocol=tcp src-address-list=winbox_stage1
+add action=add-src-to-address-list address-list=winbox_stage1 address-list-timeout=30m chain=input comment="Prote\E7\E3o winbox BruteForce 1/6" connection-state=new dst-port=8291 protocol=tcp
+
+# 6º filtro para acelerar a navegação
+/ip firewall filter
+add action=accept chain=input comment="Permitir conex\F5es estabelecidas" connection-state=established
+add action=accept chain=forward comment="Permitir conex\F5es relacionada" connection-state=related
+add action=drop chain=forward comment="Bloqueia  conex\F5es inv\E1lidas" connection-state=invalid
+
+# 7º chain tipo forward  bloqueando portas comumente atacadas
+/ip firewall filter
+add action=jump chain=forward comment="Saltar para a cadeia criada v\EDrus" jump-target=virus
+add action=drop chain=virus comment="Drop Blaster Worm" dst-port=135-139 protocol=tcp
+add action=drop chain=virus comment="Drop Messenger Worm" dst-port=135-139 protocol=udp
+add action=drop chain=virus comment="Drop Blaster Worm" dst-port=445 protocol=tcp
+add action=drop chain=virus comment="Drop Blaster Worm" dst-port=445 protocol=udp
+add action=drop chain=virus comment=________ dst-port=593 protocol=tcp
+add action=drop chain=virus comment=________ dst-port=593 protocol=udp
+add action=drop chain=virus comment=________ dst-port=1024-1030 protocol=tcp
+add action=drop chain=virus comment="Drop MyDoom" dst-port=1080 protocol=tcp
+add action=drop chain=virus comment=________ dst-port=1214 protocol=tcp
+add action=drop chain=virus comment="ndm requester" dst-port=1363 protocol=tcp
+add action=drop chain=virus comment="ndm server" dst-port=1364 protocol=tcp
+add action=drop chain=virus comment="screen cast" dst-port=1368 protocol=tcp
+add action=drop chain=virus comment=hromgrafx dst-port=1373 protocol=tcp
+add action=drop chain=virus comment=cichlid dst-port=1377 protocol=tcp
+add action=drop chain=virus comment=Worm dst-port=1433-1434 protocol=tcp
+add action=drop chain=virus comment=Worm dst-port=1433-1434 protocol=udp
+add action=drop chain=virus comment="Drop Dumaru.Y" dst-port=2283 protocol=tcp
+add action=drop chain=virus comment="Drop Beagle" dst-port=2535 protocol=tcp
+add action=drop chain=virus comment="Bagle Virus" dst-port=2745 protocol=tcp
+add action=drop chain=virus comment="Drop Beagle.C-K" dst-port=2745 protocol=tcp
+add action=drop chain=virus comment="Drop MyDoom" dst-port=3127-3128 protocol=tcp
+add action=drop chain=virus comment="Drop Backdoor OptixPro" dst-port=3410 protocol=tcp
+add action=drop chain=virus comment=Worm dst-port=4444 protocol=tcp
+add action=drop chain=virus comment=Worm dst-port=4444 protocol=udp
+add action=drop chain=virus comment="Drop Sasser" dst-port=5554 protocol=tcp
+add action=drop chain=virus comment="Drop Beagle.B" dst-port=8866 protocol=tcp
+add action=drop chain=virus comment="Drop Dabber.A-B" dst-port=9898 protocol=tcp
+add action=drop chain=virus comment="Drop Dumaru.Y" dst-port=10000 protocol=tcp
+add action=drop chain=virus comment="Drop MyDoom.B" dst-port=10080 protocol=tcp
+add action=drop chain=virus comment="Drop NetBus" dst-port=12345 protocol=tcp
+add action=drop chain=virus comment="Drop Kuang2" dst-port=17300 protocol=tcp
+add action=drop chain=virus comment="Drop SubSeven" dst-port=27374 protocol=tcp
+add action=drop chain=virus comment="Drop PhatBot, Agobot, Gaobot" dst-port=65506 protocol=tcp

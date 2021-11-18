@@ -1,0 +1,53 @@
+#########################################################################################################
+# Rick Frey's Basic Failover with Netwatch                                                              #
+# Author: Aleponce #                                                                                    #
+# Social: https://linkme.bio/aleponce #                                                                 #
+# Colabore: https://app.picpay.com/user/seuti #                                                         #
+#########################################################################################################
+# License #                                                                                             #
+# This script has been created for use by the general public and may be used freely. #                  #
+#########################################################################################################
+# Features                                                                                              #                                                                             #
+# -Send logs via e-mail.                                                                                #
+#########################################################################################################
+
+############################################################################################################################
+### Set System Time/ Clock Settings                                                                                      ###
+############################################################################################################################
+/system clock
+set time-zone-name=America/North_Dakota/Center
+/system ntp client
+set enabled=yes primary-ntp=23.102.23.44 secondary-ntp=128.138.141.172
+
+############################################################################################################################
+### Set System Logging behaviour                                                                                         ###
+############################################################################################################################
+/system logging action
+set 1 disk-file-count=1 disk-lines-per-file=10000
+
+/system logging
+set 0 action=disk
+set 1 action=disk
+set 2 action=disk
+
+############################################################################################################################
+### Set System e-mail settings                                                                                           ###
+############################################################################################################################
+/tool e-mail
+set address=65.60.12.114 from=support@yourdomain.com password=Password port=465 start-tls=tls-only user=support@yourdomain.com
+
+############################################################################################################################
+### Script & Scheduler                                                                                                   ###
+### Adjust interval as needed                                                                                            ###
+############################################################################################################################
+/system scheduler
+add interval=1d name="Send Logs via e-mail" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive start-date=may/15/2015 start-time=07:00:00
+
+/system script
+add name="Send Logs via e-mailScript" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive source=":global strDate [/system clock get date]\r\
+    \n:global strTime [/system clock get time]\r\
+    \n:global strName [/system identity get name]\r\
+    \n\r\
+    \n/tool e-mail send to=rickfrey1000@gmail.com body=\"\$strName Logs for \$strDate\" subject=\"\$strName Logs for \$strDate \$strTime\" file=log\r\
+    \nlog info message=\"Logs sent\""
+
