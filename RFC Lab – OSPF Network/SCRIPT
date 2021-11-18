@@ -1,1 +1,178 @@
+#########################################################################################################
+# Your 1st OSPF Network                                                                                 #
+#########################################################################################################
+# Author: Aleponce #                                                                                    #
+# Social: https://linkme.bio/aleponce #                                                                 #
+# Colabore: https://app.picpay.com/user/seuti #                                                         #
+#########################################################################################################
+# License #                                                                                             #
+# This script has been created for use by the general public and may be used freely. #                  #
+#########################################################################################################
+#########################################################################################################
+#RouterOS 6.48.5
+
+# SCRIPT GATEWAY
+/interface bridge
+add name=Loopback
+/routing ospf instance
+set [ find default=yes ] distribute-default=always-as-type-1 \
+    redistribute-connected=as-type-1 router-id=172.16.0.1
+/ip address
+add address=10.10.10.1/30 interface=ether3 network=10.10.10.0
+add address=10.10.10.9/30 interface=ether2 network=10.10.10.8
+add address=10.10.10.17/30 interface=ether5 network=10.10.10.16
+add address=10.10.10.25/30 interface=ether4 network=10.10.10.24
+add address=192.168.88.1/24 interface=ether8 network=192.168.88.0
+add address=172.16.0.1 interface=Loopback network=172.16.0.1
+/ip dhcp-client
+add default-route-distance=0 disabled=no interface=ether1
+/ip dns
+set servers=8.8.8.8
+/ip firewall nat
+add action=masquerade chain=srcnat out-interface=ether1
+/routing ospf network
+add area=backbone network=10.10.10.0/30
+add area=backbone network=10.10.10.8/30
+add area=backbone network=10.10.10.16/30
+add area=backbone network=10.10.10.24/30
+add area=backbone network=172.16.0.1/32
+/system identity
+set name="Gateway Router"
+
+# SCRIPT TW1
+/interface bridge
+add name=Loopback
+/routing ospf instance
+set [ find default=yes ] router-id=172.16.1.1
+/ip address
+add address=10.10.10.2/30 interface=ether1 network=10.10.10.0
+add address=10.10.10.5/30 interface=ether2 network=10.10.10.4
+add address=172.16.1.1 interface=Loopback network=172.16.1.1
+/ip dns
+set servers=8.8.8.8
+/routing ospf network
+add area=backbone network=10.10.10.0/30
+add area=backbone network=10.10.10.4/30
+add area=backbone network=172.16.1.1/32
+/system identity
+set name=Tower1
+
+# SCRIPT TW2
+/interface bridge
+add name=Loopback
+/routing ospf instance
+set [ find default=yes ] router-id=172.16.1.2
+/ip address
+add address=10.10.10.10/30 interface=ether1 network=10.10.10.8
+add address=10.10.10.13/30 interface=ether2 network=10.10.10.12
+add address=172.16.1.2 interface=Loopback network=172.16.1.2
+/ip dns
+set servers=8.8.8.8
+/routing ospf network
+add area=backbone network=10.10.10.8/30
+add area=backbone network=10.10.10.12/30
+add area=backbone network=172.16.1.2/32
+/system identity
+set name=Tower2
+
+# SCRIPT TW3
+/interface bridge
+add name=Loopback
+/routing ospf instance
+set [ find default=yes ] router-id=172.16.1.3
+/ip address
+add address=10.10.10.18/30 interface=ether1 network=10.10.10.16
+add address=10.10.10.21/30 interface=ether2 network=10.10.10.20
+add address=172.16.1.3 interface=Loopback network=172.16.1.3
+/ip dns
+set servers=8.8.8.8
+/routing ospf network
+add area=backbone network=10.10.10.16/30
+add area=backbone network=10.10.10.20/30
+add area=backbone network=172.16.1.3/32
+/system identity
+set name=Tower3
+
+# SCRIPT TW4
+/interface bridge
+add name=Loopback
+/routing ospf instance
+set [ find default=yes ] router-id=172.16.1.4
+/ip address
+add address=10.10.10.26/30 interface=ether1 network=10.10.10.24
+add address=10.10.10.29/30 interface=ether2 network=10.10.10.28
+add address=172.16.1.4 interface=Loopback network=172.16.1.4
+/ip dns
+set servers=8.8.8.8
+/routing ospf network
+add area=backbone network=10.10.10.24/30
+add area=backbone network=10.10.10.28/30
+add area=backbone network=172.16.1.4/32
+/system identity
+set name=Tower4
+
+# SCRIPT TW5
+/interface bridge
+add name=Loopback
+/routing ospf instance
+set [ find default=yes ] router-id=172.16.1.5
+/ip address
+add address=10.10.10.30/30 interface=ether1 network=10.10.10.28
+add address=172.16.1.5 interface=Loopback network=172.16.1.5
+/ip dns
+set servers=8.8.8.8
+/routing ospf network
+add area=backbone network=10.10.10.28/30
+add area=backbone network=172.16.1.5/32
+/system identity
+set name=Tower5
+
+# SCRIPT TW6
+/interface bridge
+add name=Loopback
+/routing ospf instance
+set [ find default=yes ] router-id=172.16.1.6
+/ip address
+add address=10.10.10.6/30 interface=ether1 network=10.10.10.4
+add address=172.16.1.6 interface=Loopback network=172.16.1.6
+/ip dns
+set servers=8.8.8.8
+/routing ospf network
+add area=backbone network=10.10.10.4/30
+add area=backbone network=172.16.1.6/32
+/system identity
+set name=Tower6
+
+# SCRIPT TW7
+/interface bridge
+add name=Loopback
+/routing ospf instance
+set [ find default=yes ] router-id=172.16.1.7
+/ip address
+add address=10.10.10.14/30 interface=ether1 network=10.10.10.12
+add address=172.16.1.7 interface=Loopback network=172.16.1.7
+/ip dns
+set servers=8.8.8.8
+/routing ospf network
+add area=backbone network=10.10.10.12/30
+add area=backbone network=172.16.1.7/32
+/system identity
+set name=Tower7
+
+# SCRIPT TW8
+/interface bridge
+add name=Loopback
+/routing ospf instance
+set [ find default=yes ] router-id=172.16.1.8
+/ip address
+add address=10.10.10.22/30 interface=ether1 network=10.10.10.20
+add address=172.16.1.8 interface=Loopback network=172.16.1.8
+/ip dns
+set servers=8.8.8.8
+/routing ospf network
+add area=backbone network=10.10.10.20/30
+add area=backbone network=172.16.1.8/32
+/system identity
+set name=Tower8
+
 
