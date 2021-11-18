@@ -1,5 +1,5 @@
 #########################################################################################################
-# Rick Frey's Basic Failover with Netwatch                                                              #
+# Basic Failover with Netwatch                                                                          #
 # Author: Aleponce #                                                                                    #
 # Social: https://linkme.bio/aleponce #                                                                 #
 # Colabore: https://app.picpay.com/user/seuti #                                                         #
@@ -7,7 +7,7 @@
 # License #                                                                                             #
 # This script has been created for use by the general public and may be used freely. #                  #
 #########################################################################################################
-# Features                                                                                              #                                                                             #
+# Features                                                                                              #
 # -Basic Traffic Priotization for VOIP applications                                                     #
 # -WMM support (When WMM is enabled on the wireless interfaces)                                         #
 # -HT AMPDU Priotization (When enabled on the Wireless interfaces)                                      #
