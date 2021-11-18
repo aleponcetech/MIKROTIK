@@ -1,5 +1,5 @@
 #########################################################################################################
-# Rick Frey's Basic Failover with Netwatch                                                              #
+# Basic Failover with Netwatch                                                                          #
 # Author: Aleponce #                                                                                    #
 # Social: https://linkme.bio/aleponce #                                                                 #
 # Colabore: https://app.picpay.com/user/seuti #                                                         #
@@ -44,4 +44,3 @@ add interval=1h name="Check WAN1 for Connectivity" on-event=\
     "/ip dhcp-client set [ find comment=WAN1 ] default-route-distance=1\r\
     \n" policy=ftp,reboot,read,write,policy,password,sniff,sensitive \
     start-date=feb/03/1970 start-time=01:18:07
-
