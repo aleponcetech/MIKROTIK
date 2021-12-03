@@ -1,0 +1,107 @@
+#########################################################################################################
+# PCC LOADBALANCE - 3 LINKS (TESTADO DE 2 ATÉ 16 LINKS) #                                               #
+# Author: Aleponce #                                                                                    #
+# Social: https://linkme.bio/aleponce #                                                                 #
+# Colabore: https://app.picpay.com/user/seuti #                                                         #
+#########################################################################################################
+
+ether1 = Interface do primeiro link
+ether2 = Interface do segundo link
+ether3 = Interface do terceiro link
+ether5 = Interface dos clientes
+
+Quando em modo roteado:
+10.1.10.129 = Ip do modem A
+10.1.10.161 = Ip do modem B
+10.1.10.193 = Ip do modem C
+
+Endereços das interfaces no Mikrotik ROS
+10.1.10.130/27 = Ip da interface ether1
+10.1.10.162/27 = Ip da interface ether2
+10.1.10.194/27 = Ip da interface ether3
+
+============================== ============================== ==========
+
+Vamos as regras e explanações sobre o sistema PCC
+
+Em mangle
+add action=accept chain=prerouting comment="SEM BALANCE" disabled=no dst-address-list=sem_balance in-interface=ether5
+esta primera regra aceita as conexões para todos os ips de destino que se encontrarem na lista 'sem_balance' que irão sair pela rota padrão
+
+add action=mark-connection chain=input comment="" connection-state=new disabled=no in-interface=ether1 new-connection-mark=conn_na passthrough=yes
+add action=mark-connection chain=input comment="" connection-state=new disabled=no in-interface=ether2 new-connection-mark=conn_nb passthrough=yes
+add action=mark-connection chain=input comment="" connection-state=new disabled=no in-interface=ether3 new-connection-mark=conn_nc passthrough=yes
+cria as marcas (conn_na, conn_nb, conn_nc) para novas conexões em cada uma das interfaces (ether1, ether2, ether3)
+
+add action=mark-routing chain=output comment="" connection-mark=conn_na disabled=no new-routing-mark=to_ra passthrough=no
+add action=mark-routing chain=output comment="" connection-mark=conn_nb disabled=no new-routing-mark=to_rb passthrough=no
+add action=mark-routing chain=output comment="" connection-mark=conn_nc disabled=no new-routing-mark=to_rc passthrough=no
+utiliza as marcações (conn_na, conn_nb, conn_nc) para criar as marcações das respectivas rotas (to_ra, to_rb, to_rc)
+
+add action=mark-connection chain=prerouting comment="" disabled=no dst-address-type=!local in-interface=ether5 new-connection-mark=conn_ma0 passthrough=yes per-connection-classifier=both-addresses:3/0
+add action=mark-connection chain=prerouting comment="" disabled=no dst-address-type=!local in-interface=ether5 new-connection-mark=conn_mb1 passthrough=yes per-connection-classifier=both-addresses:3/1
+add action=mark-connection chain=prerouting comment="" disabled=no dst-address-type=!local in-interface=ether5 new-connection-mark=conn_mc2 passthrough=yes per-connection-classifier=both-addresses:3/2
+
+agora utilizando os classificadores (0,1,2 e portanto são 3) na interface de clientes criamos novas marcas de conexão (conn_ma0, conn_mb1, conn_mc2), notem que se tivessemos 4 links seria aquie que fariamos as alterações para (0,1,2,3 e portanto são 4) ficando 4/0, 4/1, 4/2, 4/3 ou ainda se tivessemos links assimétricos onde por exemplo:
+
+LinkX de 512k
+LinkY de 1024k
+LinkZ de 2048k
+
+somariamos todos os links e dividiriamos pelo valor do menor link então teriamos 3584k/512k=7 então teriamos 7 marcações de pcc indo de 7/0 até 7/6 das quais devemos direcionar a primeira pro link X, a segunda e terceira pro link Y e as quatro restantes para o link Z fazendo nosso sistema perfeitamente equilibrado, vale resaltar que sistemas do tipo ADSL não garantem a banda e portanto devemos fazer testes em cada um dos links para aferir as velocidades possíveis em cada um, já vi muitos casos onde um link desse tipo de 2Mb era melhor do que o de 4Mb da mesma operadora instalada no mesmo local, também se deve criar as marcações para input e output.
+
+add action=mark-routing chain=prerouting comment="" connection-mark=conn_ma0 disabled=no in-interface=ether5 new-routing-mark=to_nra passthrough=no
+add action=mark-routing chain=prerouting comment="" connection-mark=conn_mb1 disabled=no in-interface=ether5 new-routing-mark=to_nrb passthrough=no
+add action=mark-routing chain=prerouting comment="" connection-mark=conn_mc2 disabled=no in-interface=ether5 new-routing-mark=to_nrc passthrough=no
+
+utilizando das novas marcações (conn_ma0, conn_mb1, conn_mc2) criamos uma nova marcação de rota na interface de clientes como (to_nra, to_nrb, to_nrc)
+
+============================== ============================== ==========
+
+Em nat
+add action=masquerade chain=srcnat comment="MASCARAMENTO PCC" disabled=no out-interface=ether1
+add action=masquerade chain=srcnat comment="" disabled=no out-interface=ether2
+add action=masquerade chain=srcnat comment="" disabled=no out-interface=ether3
+vale resaltar que o mascaramento pode ser feito de várias formas, indicando por exempo o ip da interface em src-nat, pela range de ips dos clientes e pela interface do link como acima.
+
+============================== ============================== ==========
+
+Em rotas
+add comment="" disabled=no distance=2 dst-address=0.0.0.0/0 gateway=10.1.10.129 scope=30 target-scope=10
+add comment="" disabled=no distance=3 dst-address=0.0.0.0/0 gateway=10.1.10.161 scope=30 target-scope=10
+add comment="" disabled=no distance=4 dst-address=0.0.0.0/0 gateway=10.1.10.193 scope=30 target-scope=10
+definimos 3 rotas padrão sendo que cada uma tem um custo diferente e portanto a primeira terá a preferencia, caso venha a faltar a segunda assume, em seguida a terceira
+
+add comment="" disabled=no distance=1 dst-address=0.0.0.0/0 gateway=10.1.10.129 routing-mark=to_nra scope=30 target-scope=10
+add comment="" disabled=no distance=1 dst-address=0.0.0.0/0 gateway=10.1.10.161 routing-mark=to_nrc scope=30 target-scope=10
+add comment="" disabled=no distance=1 dst-address=0.0.0.0/0 gateway=10.1.10.193 routing-mark=to_nrb scope=30 target-scope=10
+em seguida todas as 3 rotas que utilizam marca de rotas (to_nra, to_nrb, to_nrc) dividem a carga que foi previamente marcada pelo mangle
+
+============================== ============================== ==========
+
+Ainda é possível fazer com que o próprio Mikrotik ROS disque as conexões do tipo ADSL aumentando a eficiência do sistema (MODENS EM BRIDGE), sendo que neste caso é recomendado fazer o mascaramento por range de ips e não por interface e a indicação dos gateways por interface e não por ip, no caso de links dedicados é recomendável fazer a indicação do ip do gateway e não da interface.
+
+Em nat
+add action=masquerade chain=srcnat src-address=10.0.0.0/24 comment="MASCARAMENTO PCC" disabled=no
+
+Em rotas
+add comment="" disabled=no distance=2 dst-address=0.0.0.0/0 gateway=ether1 scope=30 target-scope=10
+add comment="" disabled=no distance=3 dst-address=0.0.0.0/0 gateway=ether2 scope=30 target-scope=10
+add comment="" disabled=no distance=4 dst-address=0.0.0.0/0 gateway=ether3 scope=30 target-scope=10
+add comment="" disabled=no distance=1 dst-address=0.0.0.0/0 gateway=ether1 routing-mark=to_nra
+add comment="" disabled=no distance=1 dst-address=0.0.0.0/0 gateway=ether2 routing-mark=to_nrb
+add comment="" disabled=no distance=1 dst-address=0.0.0.0/0 gateway=ether3 routing-mark=to_nrc
+
+============================== ============================== ==========
+
+Com relação ao usar o check ping, devemos tomar um certo cuidado pois links de diferentes tipos tendem a ter diferentes tempos de resposta ao ping e quando este método é utilizado pode ocorrer desigualdade entre os consumos dos links apesar de as marcações estarem corretas, isso porque o sistema leva em consideração o tempo de resposta de cada gateway.
+
+============================== ============================== ==========
+
+Dica:
+/system ntp client
+set enabled=yes mode=unicast primary-ntp=a.ntp.br
+set enabled=yes mode=unicast secondary-ntp=b.ntp.br
+importante manter o relógio do seu sistema em sincronia com UTC para automação de tarefas e registro de logs.
+
+============================== ============================== ==========
