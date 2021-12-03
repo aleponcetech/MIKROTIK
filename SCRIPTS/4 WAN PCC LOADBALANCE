@@ -5,7 +5,7 @@
 # Colabore: https://app.picpay.com/user/seuti #                                                         #
 ##########################################################################################################
 Simple Pcc Loadbalance 4Wan
-#Rename ether as WAN1,WAN2,WAN3,WAN4,Local
+#Renomeie as Interfaces para: WAN1,WAN2,WAN3,WAN4,Local
 
 /ip address
 add address=192.168.0.1/24 network=192.168.0.0 broadcast=192.168.0.255 interface=Local
@@ -73,12 +73,26 @@ set store-leases-disk=never
  
 /ip dhcp-server network
 add address=192.168.0.0/24 gateway=192.168.0.1
- 
-/system clock
-set time-zone-name=manual
- 
-/system clock manual
-set dst-delta=+00:00 dst-end="jan/01/1970 00:00:00" dst-start="jan/01/1970 00:00:00" time-zone=+05:00
- 
+
+/system note
+set note="\t\t\t\t\t\t\t\t\t\t\t\r\
+    \n\t*************************************************************\r\
+    \n\t*************************************************************\r\
+    \n\t*************************************************************\r\
+    \n\t*****=======================AVISO!=======================****\r\
+    \n        ********<DOMINIO DE REDE PRIVADA - PROIBIDO O ACESSO>********\r\
+    \n\t*************************************************************\r\
+    \n\t************************************************************* \r\
+    \n\t*************************************************************\r\
+    \n\r\
+    \n\t\t  ############################################# \r\
+    \n\t\t  ###########Server Configuration By########### \r\
+    \n\t\t  #################<ALE PONCE>#################\r\
+    \n\t\t  ###############(www.seuti.net)###############\r\
+    \n\t\t  #############################################"
+
 /system ntp client
-set enabled=yes mode=unicast primary-ntp=203.158.118.2 secondary-ntp=116.193.170.16
+set enabled=yes primary-ntp=200.160.7.186 secondary-ntp=201.49.148.135
+
+/system clock
+set time-zone-name=America/Sao_Paulo
