@@ -1,0 +1,218 @@
+#########################################################################################################
+# QOS e priorização de tráfego no Mikrotik #                                                            #
+# Author: Aleponce #                                                                                    #
+# Social: https://linkme.bio/aleponce #                                                                 #
+# Colabore: https://app.picpay.com/user/seuti #                                                         #
+#########################################################################################################
+
+##Marcando os pacotes no firewall:
+/ ip firewall mangle 
+action=mark-connection new-connection-mark=ICMP-Conexao passthrough=yes \
+comment="CONTROLE ICMP" disabled=no 
+add chain=prerouting connection-mark=ICMP-Conexao action=mark-packet \
+new-packet-mark=ICMP-Pacotes passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=443 action=mark-connection \
+new-connection-mark=Navegacao-Conexao passthrough=yes comment="CONTROLE \
+NAVEGACAO" disabled=no 
+add chain=prerouting protocol=tcp dst-port=80 action=mark-connection \
+new-connection-mark=Navegacao-Conexao passthrough=yes comment="" \
+disabled=no 
+add chain=prerouting protocol=tcp dst-port=53 action=mark-connection \
+new-connection-mark=Navegacao-Conexao passthrough=yes comment="" \
+disabled=no 
+add chain=prerouting protocol=udp dst-port=53 action=mark-connection \
+new-connection-mark=Navegacao-Conexao passthrough=yes comment="" \
+disabled=no 
+add chain=prerouting protocol=tcp dst-port=21 action=mark-connection \
+new-connection-mark=Navegacao-Conexao passthrough=yes comment="" \
+disabled=no 
+add chain=prerouting connection-mark=Navegacao-Conexao action=mark-packet \
+new-packet-mark=Navegacao-Pacotes passthrough=no comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=110 action=mark-connection \
+new-connection-mark=E-mail-Conexao passthrough=yes comment="CONTROLE \
+E-MAIL" disabled=no 
+add chain=prerouting protocol=tcp dst-port=25 action=mark-connection \
+new-connection-mark=E-mail-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=udp dst-port=25 action=mark-connection \
+new-connection-mark=E-mail-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting connection-mark=E-mail-Conexao action=mark-packet \
+new-packet-mark=E-mail-Pacotes passthrough=no comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=1863 action=mark-connection \
+new-connection-mark=Messenger-Conexao passthrough=yes comment="CONTROLE \
+MESSENGER" disabled=no 
+add chain=prerouting protocol=udp dst-port=1863 action=mark-connection \
+new-connection-mark=Messenger-Conexao passthrough=yes comment="" \
+disabled=no 
+add chain=prerouting protocol=tcp dst-port=6891-6901 action=mark-connection \
+new-connection-mark=Messenger-Conexao passthrough=yes comment="" \
+disabled=no 
+add chain=prerouting protocol=udp dst-port=6891-6901 action=mark-connection \
+new-connection-mark=Messenger-Conexao passthrough=yes comment="" \
+disabled=no 
+add chain=prerouting protocol=udp dst-port=5190 action=mark-connection \
+new-connection-mark=Messenger-Conexao passthrough=yes comment="" \
+disabled=no 
+add chain=prerouting connection-mark=Messenger-Conexao action=mark-packet \
+new-packet-mark=Messenger-Pacotes passthrough=no comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=22 action=mark-connection \
+new-connection-mark=Acesso-Remoto-Conexao passthrough=yes \
+comment="CONTROLE ACESSO REMOTO" disabled=no 
+add chain=prerouting protocol=tcp dst-port=23 action=mark-connection \
+new-connection-mark=Acesso-Remoto-Conexao passthrough=yes comment="" \
+disabled=no 
+add chain=prerouting protocol=tcp dst-port=3389 action=mark-connection \
+new-connection-mark=Acesso-Remoto-Conexao passthrough=yes \
+comment="Terminal Server" disabled=no 
+add chain=prerouting protocol=tcp dst-port=5800 action=mark-connection \
+new-connection-mark=Acesso-Remoto-Conexao passthrough=yes comment="VNC" \
+disabled=no 
+add chain=prerouting protocol=tcp dst-port=5900 action=mark-connection \
+new-connection-mark=Acesso-Remoto-Conexao passthrough=yes comment="" \
+disabled=no 
+add chain=prerouting protocol=tcp dst-port=8291 action=mark-connection \
+new-connection-mark=Acesso-Remoto-Conexao passthrough=yes comment="Winbox" \
+disabled=no 
+add chain=prerouting connection-mark=Acesso-Remoto-Conexao action=mark-packet \
+new-packet-mark=Acesso-Remoto-Pacotes passthrough=no comment="" \
+disabled=no 
+add chain=prerouting protocol=tcp dst-port=3306 action=mark-connection \
+new-connection-mark=Banco-Dados-Conexao passthrough=yes comment="CONTROLE \
+BANCO DE DADOS - SQL" disabled=no 
+add chain=prerouting protocol=tcp dst-port=1521 action=mark-connection \
+new-connection-mark=Banco-Dados-Conexao passthrough=yes comment="Oracle" \
+disabled=no 
+add chain=prerouting protocol=tcp dst-port=1433-1434 action=mark-connection \
+new-connection-mark=Banco-Dados-Conexao passthrough=yes comment="Microsoft \
+SQL Server" disabled=no 
+add chain=prerouting connection-mark=Banco-Dados-Conexao action=mark-packet \
+new-packet-mark=Banco-Dados-Pacotes passthrough=no comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=7171 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="CONTROLE JOGOS" \
+disabled=no 
+add chain=prerouting protocol=tcp dst-port=27015 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=55905 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="Mu Online" \
+disabled=no 
+add chain=prerouting protocol=udp dst-port=55905 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=4376 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="Line Age" \
+disabled=no 
+add chain=prerouting protocol=udp dst-port=4376 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=6112 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="WarCraft" \
+disabled=no 
+add chain=prerouting protocol=udp dst-port=6112 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=4500 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=udp dst-port=4500 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=6900 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=udp dst-port=6900 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=5000 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=udp dst-port=5000 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=27018 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="Counter Strike" \
+disabled=no 
+add chain=prerouting protocol=udp dst-port=27018 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=27015 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=udp dst-port=27015 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=27020 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=udp dst-port=27020 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=27019 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=udp dst-port=27019 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=tcp dst-port=27013 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting protocol=udp dst-port=27013 action=mark-connection \
+new-connection-mark=Jogos-Conexao passthrough=yes comment="" disabled=no 
+add chain=prerouting connection-mark=Jogos-Conexao action=mark-packet \
+new-packet-mark=Jogos-Pacotes passthrough=no comment="" disabled=no 
+add chain=prerouting protocol=udp action=mark-connection \
+new-connection-mark=UDP-Conexao passthrough=yes comment="CONTROLE UDP" \
+disabled=no 
+add chain=prerouting connection-mark=UDP-Conexao action=mark-packet \
+new-packet-mark=UDP-Pacotes passthrough=no comment="" disabled=no 
+add chain=prerouting action=mark-connection new-connection-mark=Outros-Conexao \
+passthrough=yes comment="CONTROLE SERVICOS NAO IDENTIFICADOS" disabled=no 
+add chain=prerouting connection-mark=Outros-Conexao action=mark-packet \
+new-packet-mark=Outros-Pacotes passthrough=no comment="" disabled=no 
+
+##Criando o controle de banda:
+/queue tree 
+add name="QOS" parent=global packet-mark="" limit-at=0 queue=default \
+priority=8 max-limit=6000000 burst-limit=0 burst-threshold=0 burst-time=0s \
+disabled=no 
+add name="1 - Navegacao" parent=QOS packet-mark=Navegacao-Pacotes \
+limit-at=2000000 queue=default priority=1 max-limit=100000000 \
+burst-limit=0 burst-threshold=0 burst-time=0s disabled=no 
+add name="2 - Messenger" parent=QOS packet-mark=Messenger-Pacotes \
+limit-at=512000 queue=default priority=2 max-limit=1000000 burst-limit=0 \
+burst-threshold=0 burst-time=0s disabled=no 
+add name="2 - E-mail" parent=QOS packet-mark=E-mail-Pacotes limit-at=512000 \
+queue=default priority=3 max-limit=1000000 burst-limit=0 burst-threshold=0 \
+burst-time=0s disabled=no 
+add name="8 - P2P" parent=QOS packet-mark=P2P-Pacotes limit-at=0 queue=default \
+priority=8 max-limit=128000 burst-limit=0 burst-threshold=0 burst-time=0s \
+disabled=no 
+add name="4 - Acesso-Remoto" parent=QOS packet-mark=Acesso-Remoto-Pacotes \
+limit-at=256000 queue=default priority=2 max-limit=512000 burst-limit=0 \
+burst-threshold=0 burst-time=0s disabled=no 
+add name="5 - ICMP" parent=QOS packet-mark=ICMP-Pacotes limit-at=256000 \
+queue=default priority=1 max-limit=512000 burst-limit=0 burst-threshold=0 \
+burst-time=0s disabled=no 
+add name="6 - UDP" parent=QOS packet-mark=UDP-Pacotes limit-at=2000000 \
+queue=default priority=3 max-limit=4000000 burst-limit=0 burst-threshold=0 \
+burst-time=0s disabled=no 
+add name="7 - Outros" parent=QOS packet-mark=Outros-Pacotes limit-at=0 \
+queue=default priority=8 max-limit=2000000 burst-limit=0 burst-threshold=0 \
+burst-time=0s disabled=no 
+add name="3 - Banco-Dados" parent=QOS packet-mark=Banco-Dados-Pacotes \
+limit-at=256000 queue=default priority=3 max-limit=512000 burst-limit=0 \
+burst-threshold=0 burst-time=0s disabled=no 
+add name="3 - Jogos" parent=QOS packet-mark=Jogos-Pacotes limit-at=512000 \
+queue=default priority=3 max-limit=1000000 burst-limit=0 burst-threshold=0 \
+burst-time=0s disabled=no
+
+
+/system ntp client
+set enabled=yes mode=unicast primary-ntp=a.ntp.br
+set enabled=yes mode=unicast secondary-ntp=b.ntp.br
+
+/system clock
+set time-zone-name=America/Sao_Paulo
+
+/system note
+set note="\t\t\t\t\t\t\t\t\t\t\t\r\
+    \n\t*************************************************************\r\
+    \n\t*************************************************************\r\
+    \n\t*************************************************************\r\
+    \n\t*****=======================AVISO!=======================****\r\
+    \n        ********<DOMINIO DE REDE PRIVADA - PROIBIDO O ACESSO>********\r\
+    \n\t*************************************************************\r\
+    \n\t************************************************************* \r\
+    \n\t*************************************************************\r\
+    \n\r\
+    \n\t\t  ############################################# \r\
+    \n\t\t  ###########Server Configuration By########### \r\
+    \n\t\t  #################<ALE PONCE>#################\r\
+    \n\t\t  ###############(www.seuti.net)###############\r\
+    \n\t\t  #############################################"
+
+########################################  /\  ###
+################# FIM ################## /  \ ###
+## Volte ao inicio e veja se teve erros   ||  ### 
+########################################  ||  ###
