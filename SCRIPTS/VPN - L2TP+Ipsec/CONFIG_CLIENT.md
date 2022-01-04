@@ -73,5 +73,7 @@ sudo ip route add 192.168.98.0/24 via 192.168.11.1 dev ppp0
 
 
 Si usas gnome puedes hacer:
+
 ![screenshot](./images/Screenshot_from_2017-08-16_22-55-31.png)
+
 ![screenshot](./images/Screenshot_from_2017-08-16_22-55-46.png)
