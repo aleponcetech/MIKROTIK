@@ -1,0 +1,254 @@
+# CONFIG PADRÃO RB
+# ---------- Script ----------------------------------------
+# --- Configura Internet DHCP na porta 1, remover se não usar
+:do {
+	:local interfDhcpClient [/interface find default-name=ether1];
+	/ip dhcp-client
+	add comment=Internet dhcp-options=hostname,clientid disabled=no\
+	interface=$interfDhcpClient;
+	:delay 10s;
+	}
+
+# -------------------------------
+
+# --- Configura Interfaces, Bridges, Address e DNS
+/interface ethernet
+set [ find default-name=ether1 ] name=ether1
+set [ find default-name=ether2 ] name=ether2
+set [ find default-name=ether3 ] name=ether3
+set [ find default-name=ether4 ] name=ether4 comment="Hotspot"
+set [ find default-name=ether5 ] name=ether5 comment="Hotspot"
+
+/interface bridge
+add name=Bridge_Hotspot comment="Hotspot"
+
+/ip address
+add address=172.20.0.1/16 interface=Bridge_Hotspot network=172.20.0.0 comment="Hotspot"
+
+/ip dns
+set allow-remote-requests=yes servers=208.67.222.123,1.1.1.1
+
+# -------------------------------
+
+# --- Configura interface Wireless - REMOVER ESTA PARTE SE NÃO TIVER WIFI
+/interface wireless
+set [ find default-name=wlan1 ] comment="Hotspot" band=2ghz-b/g/n  \
+    default-forwarding=no frequency=auto wps-mode=disabled mode=ap-bridge \
+    ssid=SEU TI disabled=no name=WiFi
+
+/interface wireless security-profiles
+set [ find default=yes ] supplicant-identity=SeuTI-WiFi
+
+/interface bridge port
+add bridge=Bridge_Hotspot interface=WiFi comment="Hotspot"
+
+# -------------------------------
+
+# --- Configura Pool e DHCP Server
+/ip pool
+add name=Hotspot ranges=172.20.0.11-172.20.255.254
+
+/ip dhcp-server
+add address-pool=Hotspot authoritative=after-2sec-delay disabled=no \
+    interface=Bridge_Hotspot lease-time=6h name=Hotspot 
+
+/ip dhcp-server network
+add address=172.20.0.0/16 comment="Hotspot" dns-server=\
+    172.20.0.1 gateway=172.20.0.1 netmask=16
+
+# -------------------------------
+
+# --- Configura QUEUE
+/queue type
+set 0 kind=sfq
+set 9 kind=sfq
+
+# --- Configura Queue
+/queue tree
+add comment="Hotspot" max-limit=300M name="Hotspot" packet-mark=\
+    hotspot parent=global priority=4 queue=default
+    
+# --- Configura Queue 
+/queue type
+set 0 kind=sfq
+add kind=pcq name=Hotspot pcq-classifier=dst-address \
+    pcq-dst-address6-mask=64 pcq-rate=300M pcq-src-address6-mask=64
+set 10 kind=sfq
+
+# --- Configura Queue 
+/ip firewall mangle
+add action=mark-connection chain=prerouting comment="Hotspot" content=\
+    hotspot.xyz new-connection-mark=hotspot passthrough=yes
+add action=mark-packet chain=prerouting comment="Hotspot" \
+    connection-mark=hotspot new-packet-mark=hotspot passthrough=\
+    yes
+
+# -------------------------------
+
+# --- Configurações Diversas
+/ip settings
+set tcp-syncookies=yes
+
+/ip cloud
+set ddns-enabled=yes
+/tool romon
+set enabled=yes
+/
+/ip cloud
+set ddns-enabled=yes
+/ip service
+set telnet disabled=yes
+set ftp disabled=yes
+set www port=8092
+set ssh disabled=yes
+set api disabled=yes
+set winbox port=8290
+set api-ssl disabled=yes
+/system clock
+set time-zone-autodetect=no time-zone-name=America/Sao_Paulo
+/
+/ip traffic-flow
+set cache-entries=16k enabled=yes
+/
+/ip upnp
+set enabled=yes
+/
+/snmp
+set contact=SEUTI enabled=yes location=SEUTI
+/system identity
+set name=SEUTI01
+
+# -------------------------------
+
+# --- Configura Firewall
+/ip firewall connection tracking
+set enabled=yes
+
+/ip firewall address-list
+add address=172.20.0.0/16 list=HotspotLogClientes
+add address=10.0.0.0/8 list=HotspotNaoLogar
+add address=192.168.0.0/16 list=HotspotNaoLogar
+add address=172.16.0.0/16 list=HotspotNaoLogar
+
+/ip firewall filter
+add action=accept chain=input protocol=icmp src-address=10.9.0.0/16
+add action=accept chain=input dst-port=8728 protocol=tcp src-address=10.9.0.0/16
+add action=accept chain=input dst-port=8290 protocol=tcp
+add action=accept chain=input dst-port=8080 protocol=tcp
+add action=accept chain=input dst-port=44 protocol=tcp
+add action=accept chain=input connection-state=established,related
+add action=accept chain=forward connection-state=established,related
+add action=drop chain=forward connection-state=invalid
+
+/ip firewall mangle
+add action=log chain=prerouting comment="HotspotLogMarcoCivil" connection-state=new \
+dst-address-list=!HotspotNaoLogar log-prefix=log_clientes src-address-list=HotspotLogClientes
+
+/ip firewall nat
+add action=masquerade chain=srcnat comment="NAT" out-interface=ether1
+add action=masquerade chain=srcnat comment="NAT Hotspot" src-address=172.20.0.0/16
+
+/ip firewall service-port
+set ftp disabled=yes
+
+/ip proxy
+set anonymous=yes cache-path=web-proxy1 src-address=0.0.0.0
+
+# -------------------------------
+## Configuração de Scripts e agendamentos
+
+# --- Scripts que fazem backup e Remove hosts
+/system script
+add name=backup_diario owner=admin comment="CRIAR BACKUP (NAO APAGAR)" policy=\
+    ftp,reboot,read,write,policy,test,password source="/sy ba sav name=mk_bkp.backup"
+add name=remove_hosts owner=admin comment="REMOVER HOSTS (NAO APAGAR)" policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source=":\
+    foreach ENTRY in=[/ip hotspot host find where !bypassed && !authorized] do\
+    ={\r\
+    \n        :local idleTime [/ip hotspot host get number=\$ENTRY uptime];\r\
+    \n   :if (\$idleTime > 4m ) do={\r\
+    \n         /ip hotspot host remove number=\$ENTRY\r\
+    \n  }\r\
+    \n}"
+
+# -------------------------------
+
+# --- Scripts Envia Backup por email
+/system script
+add comment="BACKUP POR EMAIL" dont-require-permissions=no name="Backup Autom\E1tico" owner=admin policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/log info \"Iniciando script de\
+    \_backup.\"\r\
+    \n/log info \"Criando o arquivo de backup.\"\r\
+    \n/export file=([/system identity get value-name=name ] .\".rsc\")\r\
+    \n/log info \"Arquivo de backup criado.\"\r\
+    \n/log info \"Enviando o email com arquivo em anexo.\"\r\
+    \n/tool e-mail send file=([/system identity get value-name=name ] .\".rsc\")  \\\r\
+    \nto=\"EMAIL@DESTINO.COM\" body=(\"Responsavel: suporte@seuti.net \\n\\r\\ \\\r\
+    \nNome= \".[/system identity get name].\"\\n\\r\\ Endereco= \".[/ip address get value-name=address numbe\
+    r=0].\\\r\
+    \n\"\\n\\r\\ Versao=\".[/system package get value-name=version system])  subject=([/system identity get \
+    name] . \" - \"\\\r\
+    \n .[/system clock get date] )\r\
+    \n/log info \"Email com arquivo enviado.\""
+
+# -------------------------------
+
+# --- Agendamento que reinicia o RB, cria backup em 24h/24h, Remove Hosts e Testar a VPN
+/system scheduler
+add comment="REINICIAR ROUTER (NAO APAGAR)" interval=1d name="Reiniciar 4AM" on-event=\
+    "/system reboot" policy=reboot,read,write,policy,test,password,sniff,sensitive \
+    start-date=jan/01/2019 start-time=04:00:00
+add comment="CRIAR BACKUP DE 24 HORAS (NAO APAGAR)" interval=1d name="backup diario" \
+    on-event=backup_diario policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive \
+    start-date=jan/16/2019 start-time=03:20:00
+add comment="REMOVER HOSTS (NAO APAGAR)" interval=1d name=Limpar on-event=\
+    remove_hosts policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon \
+    start-date=dec/12/2019 start-time=02:10:00
+add comment="BACKUP MANH\C3" interval=1d name="Backup - Manh\E3" on-event="Backup Autom\E1tico" policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=jan/26/2019 start-time=\
+    05:00:00
+add comment="BACKUP NOITE" interval=1d name="Backup Noite" on-event="Backup Autom\E1tico" policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=jan/26/20019 start-time=\
+    20:00:00
+/
+/tool e-mail
+set address=smtp.gmail.com from="BACKUP MIKROTIK<seuemail@gmail.com>" password=\
+    "SuaSenha" port=587 start-tls=yes user=seuemail@gmail.com
+/
+# -------------------------------
+
+# --- Adiciona a porta na Bridge_Hotspot
+/interface bridge port
+add bridge=Bridge_Hotspot interface=ether4 comment="Hotspot"
+add bridge=Bridge_Hotspot interface=ether5 comment="Hotspot"
+
+# -------------------------------
+
+/system note
+set note="\t\t\t\t\t\t\t\t\t\t\t\r\
+    \n\t*************************************************************\r\
+    \n\t*************************************************************\r\
+    \n\t************************************************************* \r\
+    \n\t   :'######::'########:'##::::'##::::'########::::::'####:\r\
+    \n\t   '##... ##: ##.....:: ##:::: ##::::... ##..:::::::. ##::\r\
+    \n\t    ##:::..:: ##::::::: ##:::: ##::::::: ##:::::::::: ##::\r\
+    \n\t   . ######:: ######::: ##:::: ##::::::: ##:::::::::: ##::\r\
+    \n\t   :..... ##: ##...:::: ##:::: ##::::::: ##:::::::::: ##::\r\
+    \n\t   '##::: ##: ##::::::: ##:::: ##::::::: ##::::'###:: ##::\r\
+    \n\t   . ######:: ########:. #######:::::::: ##:::: ###:'####:\r\
+    \n\t   :......:::........:::.......:::::::::..:::::...::....::\r\
+    \n\t*************************************************************\r\
+    \n\r\
+    \n\t\t  ############################################# \r\
+    \n\t\t  ###########Server Configuration By########### \r\
+    \n\t\t  #################<ALE PONCE>#################\r\
+    \n\t\t  ###############(www.seuti.net)###############\r\
+    \n\t\t  #############################################"
+
+#
+# --- Final
+########################################  /\  ###
+################# FIM ################## /  \ ###
+## Volte ao inicio e veja se teve erros   ||  ### 
+########################################  ||  ###
+
