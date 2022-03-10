@@ -1,0 +1,68 @@
+#########################################################################################################
+# PCC LOADBALANCE - 2 LINKS                                                                             #
+# Author: Aleponce #                                                                                    #
+# Social: https://linkme.bio/aleponce #                                                                 #
+# Colabore: https://app.picpay.com/user/seuti #                                                         #
+#########################################################################################################
+
+# =============================
+# TOPOLOGIA
+# ether1WAN1-50M = 192.168.1.1
+# ether2WAN2-50M = 192.168.100.1
+# IP PPPOE = 192.168.55.0/24
+# IP HOTSPOT = 192.168.22.0/24
+# =============================
+
+/interface ethernet
+set [ find default-name=ether1 ] name=ether1WAN1-50M speed=100Mbps
+set [ find default-name=ether2 ] name=ether2WAN2-50M speed=100Mbps
+/ip dhcp-client
+add add-default-route=no disabled=no interface=ether1WAN1-50M
+add add-default-route=no disabled=no interface=ether2WAN2-50M
+/ip firewall address-list
+add address=192.168.55.0/24 list=lokal
+add address=192.168.22.0/24 list=lokal
+add address=192.168.0.0/16 list=private-lokal
+add address=50.40.40.0/24 list=private-lokal
+add address=10.0.0.0/8 list=private-lokal
+/ip firewall mangle
+add action=accept chain=prerouting comment=LOKAL dst-address-list=\
+    private-lokal src-address-list=private-lokal
+add action=accept chain=forward dst-address-list=private-lokal \
+    src-address-list=private-lokal
+add action=accept chain=input dst-address-list=private-lokal \
+    src-address-list=private-lokal
+add action=accept chain=output dst-address-list=private-lokal \
+    src-address-list=private-lokal
+add action=accept chain=postrouting dst-address-list=private-lokal \
+    src-address-list=private-lokal
+add action=mark-connection chain=prerouting dst-address-list=!private-lokal \
+    dst-address-type=!local new-connection-mark=ISP1-CONN passthrough=yes \
+    per-connection-classifier=both-addresses-and-ports:2/0 src-address-list=\
+    lokal
+add action=mark-connection chain=prerouting dst-address-list=!private-lokal \
+    dst-address-type=!local new-connection-mark=ISP2-CONN passthrough=yes \
+    per-connection-classifier=both-addresses-and-ports:2/1 src-address-list=\
+    lokal
+add action=mark-routing chain=prerouting connection-mark=ISP1-CONN \
+    dst-address-list=!private-lokal new-routing-mark=ISP1 passthrough=no \
+    src-address-list=lokal
+add action=mark-routing chain=prerouting connection-mark=ISP2-CONN \
+    dst-address-list=!private-lokal new-routing-mark=ISP2 passthrough=no \
+    src-address-list=lokal
+/ip firewall nat
+add action=masquerade chain=srcnat out-interface=ether1WAN1-50M
+add action=masquerade chain=srcnat out-interface=ether2WAN2-50M
+/ip route
+add check-gateway=ping comment=ISP1 distance=1 gateway=8.8.8.8 routing-mark=\
+    ISP1 target-scope=30
+add check-gateway=ping comment=ISP2 distance=2 gateway=1.1.1.1 routing-mark=\
+    ISP2 scope=40 target-scope=40
+add check-gateway=ping comment=ISP1 distance=1 gateway=8.8.8.8 target-scope=\
+    30
+add check-gateway=ping comment=ISP2 distance=2 gateway=1.1.1.1 scope=40 \
+    target-scope=40
+add check-gateway=ping comment=ISP2 distance=2 dst-address=1.1.1.1/32 \
+    gateway=192.168.100.1 scope=40
+add check-gateway=ping comment=ISP1 distance=1 dst-address=8.8.8.8/32 \
+    gateway=192.168.1.1
