@@ -1,3 +1,14 @@
+#########################################################################################################
+# Firewall BAsico Mikrotik                                                                              #
+# Author: Aleponce #                                                                                    #
+# Social: https://linkme.bio/aleponce #                                                                 #
+# Colabore: https://app.picpay.com/user/seuti #                                                         #
+#########################################################################################################
+# License #                                                                                             #
+# This script has been created for use by the general public and may be used freely. #                  #
+#########################################################################################################
+
+
 # 1º Porta UTP 53
 /ip firewall filter add action=drop chain=input comment="Bloqueio Porta 53" dst-port=53 protocol=tcp
 /ip firewall filter add action=drop chain=input comment="Bloqueio Porta 53 Externo" dst-port=53 in-interface=ether1 protocol=udp
