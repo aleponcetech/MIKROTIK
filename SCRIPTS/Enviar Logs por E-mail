@@ -15,7 +15,7 @@
 ### Set System Time/ Clock Settings                                                                                      ###
 ############################################################################################################################
 /system clock
-set time-zone-name=America/North_Dakota/Center
+set time-zone-name=America/Sao_Paulo/
 /system ntp client
 set enabled=yes primary-ntp=23.102.23.44 secondary-ntp=128.138.141.172
 
@@ -48,6 +48,6 @@ add name="Send Logs via e-mailScript" policy=ftp,reboot,read,write,policy,test,p
     \n:global strTime [/system clock get time]\r\
     \n:global strName [/system identity get name]\r\
     \n\r\
-    \n/tool e-mail send to=rickfrey1000@gmail.com body=\"\$strName Logs for \$strDate\" subject=\"\$strName Logs for \$strDate \$strTime\" file=log\r\
+    \n/tool e-mail send to=SEUEMAIL@gmail.com body=\"\$strName Logs for \$strDate\" subject=\"\$strName Logs for \$strDate \$strTime\" file=log\r\
     \nlog info message=\"Logs sent\""
 
