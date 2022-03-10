@@ -1,3 +1,13 @@
+#########################################################################################################
+# Setup Inicial Mirkotik                                                                        #
+# Author: Aleponce #                                                                                    #
+# Social: https://linkme.bio/aleponce #                                                                 #
+# Colabore: https://app.picpay.com/user/seuti #                                                         #
+#########################################################################################################
+# License #                                                                                             #
+# This script has been created for use by the general public and may be used freely. #                  #
+#########################################################################################################
+
 # CONFIG PADRÃO RB
 # ---------- Script ----------------------------------------
 # --- Configura Internet DHCP na porta 1, remover se não usar
