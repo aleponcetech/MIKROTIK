@@ -1,0 +1,14 @@
+# Bloqueio de Youtube,Whatsapp e Facebook:
+/ip firewall layer7-protocol
+
+
+# Bloqueio de sites Pornográficos:
+/ip firewall layer7-protocol
+add name="Sites Pornos_L7" regexp="^.+(4tube|amateurscentral|novinha|porno|sex\
+    o|lesbi|gay|amador|suruba|fudeli|xbrasil|teen|sexy|acervo|ponr8teenxxx|alo\
+    tporn|beeg|bustnow|cliphunter|definebabes|deviantclip|drtuber|empflix|fant\
+    asti.cc|fapdu|freeporn|freudbox|fuq|fux|grayvee|hellxx|hustlertube|jugy|ji\
+    zzhut|kaktuz|keezmovies|kinxxx|laraporn|leakedporn|lovelyclips|lubetube|mo\
+    fosex|boafod|monstertube|madthumbs|moviefap|moviesand|orgasm|perfectgirls.\
+    net|pichunter|planetsuzy|porn|pornolan|porn-plus|porncor|pornhub|pornrabbi\
+    t|porntitan|pussy.org|redtube|tube8|xhamster|xnxx|xvideos|youjizz).*\$"
