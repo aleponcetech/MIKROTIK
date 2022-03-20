@@ -1,0 +1,26 @@
+##Bloqueio por Layer-7
+/ip firewall layer7-protocol
+# redes Sociais:
+add name=Youtube_L7 regexp="^.+(youtube.com|www.youtube.com|m.youtube.com|ytim\
+g.com|s.ytimg.com|ytimg.l.google.com|youtube.l.google.com|i.google.com|goo\
+glevideo.com|youtu.be).*\$"
+add name=Facebook_L7 regexp="^.+(facebook.com|facebook.co|facebook.net|facebook.org|fb.com|fb.me|fbsbx.com|thefacebook.com|fbcdn.net|facebook.ag|facebook.asia|facebook.at|facebook.be|facebook.bg|facebook.biz|facebook.ca|facebook.cn|facebook.co|facebook.co.at|facebook.co.in|facebook.co.kr|facebook.com|facebook.com.ar|facebook.com.au|facebook.com.bd|facebook.com.br|facebook.co.nz|facebook.co.th|facebook.co.uk|facebook.co.za).*\$"
+add name=Twitter_L7 regexp="^.+(twitter.com|twimg.com).*\$"
+add name=Instagram_L7 regexp="^.+(instagram.com).*\$"
+add name=WhatsApp_L7 regexp="^.+(whatsapp.com).*\$"
+add name=Telegram_L7 regexp="^.+(telegram.com).*\$"
+
+
+# Sites Pornográficos:
+add name="Porno_L7" regexp="^.+(4tube|amateurscentral|novinha|porno|sexo|lesbi|gay|amador|suruba|fudeli|xbrasil|teen|sexy|acervo|ponr8teenxxx|alotporn|beeg|bustnow|cliphunter|definebabes|deviantclip|drtuber|empflix|fantasti.cc|fapdu|freeporn|freudbox|fuq|fux|grayvee|hellxx|hustlertube|jugy|jizzhut|kaktuz|keezmovies|kinxxx|laraporn|leakedporn|lovelyclips|lubetube|mofosex|boafod|monstertube|madthumbs|moviefap|moviesand|orgasm|perfectgirls.net|pichunter|planetsuzy|porn|pornolan|porn-plus|porncor|pornhub|pornrabbit|porntitan|pussy.org|redtube|tube8|xhamster|xnxx|xvideos|youjizz).*\$"
+
+
+/ip firewall filter
+add action=drop chain=forward layer7-protocol=Youtube_L7 comment=Youtube_L7
+add action=drop chain=forward layer7-protocol=Facebook_L7 comment=Facebook_L7
+add action=drop chain=forward layer7-protocol=Twitter_L7 comment=Twitter_L7
+add action=drop chain=forward layer7-protocol=Porno_L7 comment=Porno_L7
+add action=drop chain=forward layer7-protocol=Instagram_L7 comment=Instagram_L7
+add action=drop chain=forward layer7-protocol=WhatsApp_L7 comment=WhatsApp_L7 
+add action=drop chain=forward layer7-protocol=Telegram_L7 comment=Telegram_L7
+#
