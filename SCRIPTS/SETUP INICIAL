@@ -1,5 +1,5 @@
 #########################################################################################################
-# Setup Inicial Mirkotik                                                                        #
+# Setup Inicial Mirkotik                                                                                #
 # Author: Aleponce #                                                                                    #
 # Social: https://linkme.bio/aleponce #                                                                 #
 # Colabore: https://app.picpay.com/user/seuti #                                                         #
@@ -26,14 +26,14 @@
 set [ find default-name=ether1 ] name=ether1
 set [ find default-name=ether2 ] name=ether2
 set [ find default-name=ether3 ] name=ether3
-set [ find default-name=ether4 ] name=ether4 comment="Hotspot"
-set [ find default-name=ether5 ] name=ether5 comment="Hotspot"
+set [ find default-name=ether4 ] name=ether4 comment="LAN"
+set [ find default-name=ether5 ] name=ether5 comment="LAN"
 
 /interface bridge
-add name=Bridge_Hotspot comment="Hotspot"
+add name=Bridge_LAN comment="LAN"
 
 /ip address
-add address=172.20.0.1/16 interface=Bridge_Hotspot network=172.20.0.0 comment="Hotspot"
+add address=172.20.0.1/16 interface=Bridge_LAN network=172.20.0.0 comment="LAN"
 
 /ip dns
 set allow-remote-requests=yes servers=208.67.222.123,1.1.1.1
@@ -42,7 +42,7 @@ set allow-remote-requests=yes servers=208.67.222.123,1.1.1.1
 
 # --- Configura interface Wireless - REMOVER ESTA PARTE SE NÃO TIVER WIFI
 /interface wireless
-set [ find default-name=wlan1 ] comment="Hotspot" band=2ghz-b/g/n  \
+set [ find default-name=wlan1 ] comment="LAN" band=2ghz-b/g/n  \
     default-forwarding=no frequency=auto wps-mode=disabled mode=ap-bridge \
     ssid=SEU TI disabled=no name=WiFi
 
@@ -50,20 +50,20 @@ set [ find default-name=wlan1 ] comment="Hotspot" band=2ghz-b/g/n  \
 set [ find default=yes ] supplicant-identity=SeuTI-WiFi
 
 /interface bridge port
-add bridge=Bridge_Hotspot interface=WiFi comment="Hotspot"
+add bridge=Bridge_LAN interface=WiFi comment="LAN"
 
 # -------------------------------
 
 # --- Configura Pool e DHCP Server
 /ip pool
-add name=Hotspot ranges=172.20.0.11-172.20.255.254
+add name=LAN ranges=172.20.0.11-172.20.255.254
 
 /ip dhcp-server
-add address-pool=Hotspot authoritative=after-2sec-delay disabled=no \
-    interface=Bridge_Hotspot lease-time=6h name=Hotspot 
+add address-pool=LAN authoritative=after-2sec-delay disabled=no \
+    interface=Bridge_LAN lease-time=6h name=LAN 
 
 /ip dhcp-server network
-add address=172.20.0.0/16 comment="Hotspot" dns-server=\
+add address=172.20.0.0/16 comment="LAN" dns-server=\
     172.20.0.1 gateway=172.20.0.1 netmask=16
 
 # -------------------------------
@@ -75,22 +75,22 @@ set 9 kind=sfq
 
 # --- Configura Queue
 /queue tree
-add comment="Hotspot" max-limit=300M name="Hotspot" packet-mark=\
-    hotspot parent=global priority=4 queue=default
+add comment="LAN" max-limit=300M name="LAN" packet-mark=\
+    LAN parent=global priority=4 queue=default
     
 # --- Configura Queue 
 /queue type
 set 0 kind=sfq
-add kind=pcq name=Hotspot pcq-classifier=dst-address \
+add kind=pcq name=LAN pcq-classifier=dst-address \
     pcq-dst-address6-mask=64 pcq-rate=300M pcq-src-address6-mask=64
 set 10 kind=sfq
 
 # --- Configura Queue 
 /ip firewall mangle
-add action=mark-connection chain=prerouting comment="Hotspot" content=\
-    hotspot.xyz new-connection-mark=hotspot passthrough=yes
-add action=mark-packet chain=prerouting comment="Hotspot" \
-    connection-mark=hotspot new-packet-mark=hotspot passthrough=\
+add action=mark-connection chain=prerouting comment="LAN" content=\
+    LAN.xyz new-connection-mark=LAN passthrough=yes
+add action=mark-packet chain=prerouting comment="LAN" \
+    connection-mark=LAN new-packet-mark=LAN passthrough=\
     yes
 
 # -------------------------------
@@ -109,10 +109,10 @@ set ddns-enabled=yes
 /ip service
 set telnet disabled=yes
 set ftp disabled=yes
-set www port=8092
+set www port=80
 set ssh disabled=yes
 set api disabled=yes
-set winbox port=8290
+set winbox port=8291
 set api-ssl disabled=yes
 /system clock
 set time-zone-autodetect=no time-zone-name=America/Sao_Paulo
@@ -135,10 +135,10 @@ set name=SEUTI01
 set enabled=yes
 
 /ip firewall address-list
-add address=172.20.0.0/16 list=HotspotLogClientes
-add address=10.0.0.0/8 list=HotspotNaoLogar
-add address=192.168.0.0/16 list=HotspotNaoLogar
-add address=172.16.0.0/16 list=HotspotNaoLogar
+add address=172.20.0.0/16 list=LANLogClientes
+add address=10.0.0.0/8 list=LANNaoLogar
+add address=192.168.0.0/16 list=LANNaoLogar
+add address=172.16.0.0/16 list=LANNaoLogar
 
 /ip firewall filter
 add action=accept chain=input protocol=icmp src-address=10.9.0.0/16
@@ -151,12 +151,12 @@ add action=accept chain=forward connection-state=established,related
 add action=drop chain=forward connection-state=invalid
 
 /ip firewall mangle
-add action=log chain=prerouting comment="HotspotLogMarcoCivil" connection-state=new \
-dst-address-list=!HotspotNaoLogar log-prefix=log_clientes src-address-list=HotspotLogClientes
+add action=log chain=prerouting comment="LANLogMarcoCivil" connection-state=new \
+dst-address-list=!LANNaoLogar log-prefix=log_clientes src-address-list=LANLogClientes
 
 /ip firewall nat
 add action=masquerade chain=srcnat comment="NAT" out-interface=ether1
-add action=masquerade chain=srcnat comment="NAT Hotspot" src-address=172.20.0.0/16
+add action=masquerade chain=srcnat comment="NAT LAN" src-address=172.20.0.0/16
 
 /ip firewall service-port
 set ftp disabled=yes
@@ -227,10 +227,10 @@ set address=smtp.gmail.com from="BACKUP MIKROTIK<seuemail@gmail.com>" password=\
 /
 # -------------------------------
 
-# --- Adiciona a porta na Bridge_Hotspot
+# --- Adiciona a porta na Bridge_LAN
 /interface bridge port
-add bridge=Bridge_Hotspot interface=ether4 comment="Hotspot"
-add bridge=Bridge_Hotspot interface=ether5 comment="Hotspot"
+add bridge=Bridge_LAN interface=ether4 comment="LAN"
+add bridge=Bridge_LAN interface=ether5 comment="LAN"
 
 # -------------------------------
 
@@ -261,4 +261,3 @@ set note="\t\t\t\t\t\t\t\t\t\t\t\r\
 ################# FIM ################## /  \ ###
 ## Volte ao inicio e veja se teve erros   ||  ### 
 ########################################  ||  ###
-
