@@ -2,188 +2,90 @@
 # QOS e priorização de tráfego no Mikrotik #                                                            #
 # Author: Aleponce #                                                                                    #
 # Social: https://linkme.bio/aleponce #                                                                 #
-# Colabore: https://app.picpay.com/user/seuti #                                                         #
 #########################################################################################################
 
 ##Marcando os pacotes no firewall:
 /ip firewall mangle
-add action=mark-connection chain=prerouting comment="CONTROLE ICMP" new-connection-mark=\
-    ICMP-Conexao passthrough=yes protocol=icmp
-add action=mark-packet chain=prerouting connection-mark=ICMP-Conexao new-packet-mark=ICMP-Pacotes \
-    passthrough=yes
-add action=mark-connection chain=prerouting comment="CONTROLE E-MAIL" dst-port=110 \
-    new-connection-mark=E-mail-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=25 new-connection-mark=E-mail-Conexao \
-    passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=25 new-connection-mark=E-mail-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-packet chain=prerouting connection-mark=E-mail-Conexao new-packet-mark=\
-    E-mail-Pacotes passthrough=no
-add action=mark-connection chain=prerouting comment="CONTROLE MESSENGER" dst-port=1863 \
-    new-connection-mark=Messenger-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=1863 new-connection-mark=Messenger-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-connection chain=prerouting dst-port=6891-6901 new-connection-mark=\
-    Messenger-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=6891-6901 new-connection-mark=\
-    Messenger-Conexao passthrough=yes protocol=udp
-add action=mark-connection chain=prerouting dst-port=5190 new-connection-mark=Messenger-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-packet chain=prerouting connection-mark=Messenger-Conexao new-packet-mark=\
-    Messenger-Pacotes passthrough=no
-add action=mark-connection chain=prerouting comment="CONTROLE ACESSO REMOTO" dst-port=22 \
-    new-connection-mark=Acesso-Remoto-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=23 new-connection-mark=Acesso-Remoto-Conexao \
-    passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting comment="Terminal Server" dst-port=3389 \
-    new-connection-mark=Acesso-Remoto-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting comment=VNC dst-port=5800 new-connection-mark=\
-    Acesso-Remoto-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=5900 new-connection-mark=Acesso-Remoto-Conexao \
-    passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting comment=Winbox dst-port=8291 new-connection-mark=\
-    Acesso-Remoto-Conexao passthrough=yes protocol=tcp
-add action=mark-packet chain=prerouting connection-mark=Acesso-Remoto-Conexao new-packet-mark=\
-    Acesso-Remoto-Pacotes passthrough=no
-add action=mark-connection chain=prerouting comment="CONTROLE BANCO DE DADOS - SQL" dst-port=3306 \
-    new-connection-mark=Banco-Dados-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting comment=Oracle dst-port=1521 new-connection-mark=\
-    Banco-Dados-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting comment="Microsoft SQL Server" dst-port=1433-1434 \
-    new-connection-mark=Banco-Dados-Conexao passthrough=yes protocol=tcp
-add action=mark-packet chain=prerouting connection-mark=Banco-Dados-Conexao new-packet-mark=\
-    Banco-Dados-Pacotes passthrough=no
-add action=mark-connection chain=prerouting comment="CONTROLE JOGOS" dst-port=7171 \
-    new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=27015 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting comment="Mu Online" dst-port=55905 new-connection-mark=\
-    Jogos-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=55905 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-connection chain=prerouting comment="Line Age" dst-port=4376 new-connection-mark=\
-    Jogos-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=4376 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-connection chain=prerouting comment=WarCraft dst-port=6112 new-connection-mark=\
-    Jogos-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=6112 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-connection chain=prerouting dst-port=4500 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=4500 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-connection chain=prerouting dst-port=6900 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=6900 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-connection chain=prerouting dst-port=5000 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=5000 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-connection chain=prerouting comment="Counter Strike" dst-port=27018 \
-    new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=27018 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-connection chain=prerouting dst-port=27015 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=27015 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-connection chain=prerouting dst-port=27020 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=27020 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-connection chain=prerouting dst-port=27019 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=27019 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-connection chain=prerouting dst-port=27013 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-port=27013 new-connection-mark=Jogos-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-packet chain=prerouting connection-mark=Jogos-Conexao new-packet-mark=Jogos-Pacotes \
-    passthrough=no
-add action=mark-connection chain=prerouting comment="CONTROLE UDP" new-connection-mark=UDP-Conexao \
-    passthrough=yes protocol=udp
-add action=mark-packet chain=prerouting connection-mark=UDP-Conexao new-packet-mark=UDP-Pacotes \
-    passthrough=no
-add action=mark-connection chain=prerouting comment="CONTROLE SERVICOS NAO IDENTIFICADOS" \
-    new-connection-mark=Outros-Conexao passthrough=yes
-add action=mark-packet chain=prerouting connection-mark=Outros-Conexao new-packet-mark=\
-    Outros-Pacotes passthrough=no
-add action=mark-packet chain=postrouting comment="PACOTES DOWNLOAD" layer7-protocol=L7_File \
-    new-packet-mark=File_PK passthrough=no
-add action=mark-connection chain=prerouting comment="CONTROLE NAVEGACAO" disabled=yes dst-port=443 \
-    new-connection-mark=Navegacao-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting disabled=yes dst-port=80 new-connection-mark=\
-    Navegacao-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting disabled=yes dst-port=53 new-connection-mark=\
-    Navegacao-Conexao passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting disabled=yes dst-port=53 new-connection-mark=\
-    Navegacao-Conexao passthrough=yes protocol=udp
-add action=mark-connection chain=prerouting disabled=yes dst-port=21 new-connection-mark=\
-    Navegacao-Conexao passthrough=yes protocol=tcp
-add action=mark-packet chain=prerouting connection-mark=Navegacao-Conexao disabled=yes \
-    new-packet-mark=Navegacao-Pacotes passthrough=no
-add action=mark-packet chain=postrouting comment="PACOTES HTTP" connection-bytes=0-10000000 \
-    dst-address-list=!SpeedTest_HOST new-packet-mark=HTTP_PK_DL passthrough=no protocol=tcp \
-    src-address-list=!SpeedTest_HOST src-port=80,8080
-add action=mark-packet chain=postrouting connection-bytes=0-5000000 dst-address-list=\
-    !SpeedTest_HOST dst-port=80,8080 new-packet-mark=HTTP_PK_UL passthrough=no protocol=tcp \
-    src-address-list=!SpeedTest_HOST
-add action=mark-packet chain=postrouting comment="PACOTES HTTPS" dst-address-list=!Streaming_HOST \
-    new-packet-mark=HTTPS_PK_DL passthrough=no protocol=tcp src-address-list=!Streaming_HOST \
-    src-port=443
-add action=mark-packet chain=postrouting dst-address-list=!Streaming_HOST dst-port=443 \
-    new-packet-mark=HTTPS_PK_UL passthrough=no protocol=tcp src-address-list=!Streaming_HOST
-add action=mark-connection chain=forward comment="MARCAR CONEX\C3O STREAMING" connection-mark=\
-    !Streaming_Conn layer7-protocol=L7_Streaming new-connection-mark=Streaming_Conn passthrough=no
-add action=add-src-to-address-list address-list=Streaming_HOST address-list-timeout=6h chain=\
-    prerouting connection-mark=Streaming_Conn
-add action=mark-packet chain=postrouting comment="MARCAR  PACOTE STREAMING" new-packet-mark=\
-    Streaming_PK passthrough=no src-address-list=Streaming_HOST
-add action=add-src-to-address-list address-list=P2P-HOST address-list-timeout=1h chain=prerouting \
-    connection-mark=P2P_Conn
-add action=mark-packet chain=postrouting comment="MARCAR PACOTES P2P" new-packet-mark=P2P_PK_DL \
-    passthrough=no src-address-list=P2P-HOST
-add action=mark-packet chain=postrouting dst-address-list=P2P-HOST new-packet-mark=P2P_PK_UL \
-    passthrough=no
-add action=mark-connection chain=forward comment="MARCAR CONEX\C3O SPEEDTEST" connection-mark=\
-    !SpeedTest_Conn layer7-protocol=L7_SpeedTest new-connection-mark=SpeedTest_Conn passthrough=no
-add action=add-src-to-address-list address-list=SpeedTest_HOST address-list-timeout=50s chain=\
-    prerouting connection-mark=SpeedTest_Conn
-add action=mark-packet chain=postrouting comment="P2P DOWNLOAD" layer7-protocol=p2p_www \
-    new-packet-mark="p2p download" passthrough=no
-add action=mark-packet chain=postrouting layer7-protocol=p2p_dns new-packet-mark="p2p download" \
-    passthrough=no
-add action=add-src-to-address-list address-list=Worm-Infected-p445 address-list-timeout=1h chain=\
-    prerouting connection-state=new dst-port=445 limit=5,10 protocol=tcp
-add action=mark-packet chain=postrouting comment="P2P DOWNLOAD" layer7-protocol=p2p_www \
-    new-packet-mark="p2p download" passthrough=no
-add action=mark-packet chain=postrouting layer7-protocol=p2p_dns new-packet-mark="p2p download" \
-    passthrough=no
-/
+add action=mark-connection chain=prerouting comment="CONTROLE ICMP" new-connection-mark=ICMP-Conexao passthrough=yes protocol=icmp
+add action=mark-packet chain=prerouting connection-mark=ICMP-Conexao new-packet-mark=ICMP-Pacotes passthrough=yes
+add action=mark-connection chain=prerouting comment="CONTROLE E-MAIL" dst-port=110 new-connection-mark=E-mail-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=25 new-connection-mark=E-mail-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=25 new-connection-mark=E-mail-Conexao passthrough=yes protocol=udp
+add action=mark-packet chain=prerouting connection-mark=E-mail-Conexao new-packet-mark=E-mail-Pacotes passthrough=no
+add action=mark-connection chain=prerouting comment="CONTROLE MESSENGER" dst-port=1863 new-connection-mark=Messenger-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=1863 new-connection-mark=Messenger-Conexao passthrough=yes protocol=udp
+add action=mark-connection chain=prerouting dst-port=6891-6901 new-connection-mark=Messenger-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=6891-6901 new-connection-mark=Messenger-Conexao passthrough=yes protocol=udp
+add action=mark-connection chain=prerouting dst-port=5190 new-connection-mark=Messenger-Conexao passthrough=yes protocol=udp
+add action=mark-packet chain=prerouting connection-mark=Messenger-Conexao new-packet-mark=Messenger-Pacotes passthrough=no
+add action=mark-connection chain=prerouting comment="CONTROLE ACESSO REMOTO" dst-port=22 new-connection-mark=Acesso-Remoto-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=23 new-connection-mark=Acesso-Remoto-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting comment="Terminal Server" dst-port=3389 new-connection-mark=Acesso-Remoto-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting comment=VNC dst-port=5800 new-connection-mark=Acesso-Remoto-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=5900 new-connection-mark=Acesso-Remoto-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting comment=Winbox dst-port=8291 new-connection-mark=Acesso-Remoto-Conexao passthrough=yes protocol=tcp
+add action=mark-packet chain=prerouting connection-mark=Acesso-Remoto-Conexao new-packet-mark=Acesso-Remoto-Pacotes passthrough=no
+add action=mark-connection chain=prerouting comment="CONTROLE BANCO DE DADOS - SQL" dst-port=3306 new-connection-mark=Banco-Dados-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting comment=Oracle dst-port=1521 new-connection-mark=Banco-Dados-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting comment="Microsoft SQL Server" dst-port=1433-1434 new-connection-mark=Banco-Dados-Conexao passthrough=yes protocol=tcp
+add action=mark-packet chain=prerouting connection-mark=Banco-Dados-Conexao new-packet-mark=Banco-Dados-Pacotes passthrough=no
+add action=mark-connection chain=prerouting comment="CONTROLE JOGOS" dst-port=7171 new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=27015 new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting comment="Mu Online" dst-port=55905 new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=55905 new-connection-mark=Jogos-Conexao passthrough=yes protocol=udp
+add action=mark-connection chain=prerouting comment="Line Age" dst-port=4376 new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=4376 new-connection-mark=Jogos-Conexao passthrough=yes protocol=udp
+add action=mark-connection chain=prerouting comment=WarCraft dst-port=6112 new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=6112 new-connection-mark=Jogos-Conexao passthrough=yes protocol=udp
+add action=mark-connection chain=prerouting dst-port=4500 new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=4500 new-connection-mark=Jogos-Conexao passthrough=yes protocol=udp
+add action=mark-connection chain=prerouting dst-port=6900 new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=6900 new-connection-mark=Jogos-Conexao passthrough=yes protocol=udp
+add action=mark-connection chain=prerouting dst-port=5000 new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=5000 new-connection-mark=Jogos-Conexao passthrough=yes protocol=udp
+add action=mark-connection chain=prerouting comment="Counter Strike" dst-port=27018 new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=27018 new-connection-mark=Jogos-Conexao passthrough=yes protocol=udp
+add action=mark-connection chain=prerouting dst-port=27015 new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=27015 new-connection-mark=Jogos-Conexao passthrough=yes protocol=udp
+add action=mark-connection chain=prerouting dst-port=27020 new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=27020 new-connection-mark=Jogos-Conexao passthrough=yes protocol=udp
+add action=mark-connection chain=prerouting dst-port=27019 new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=27019 new-connection-mark=Jogos-Conexao passthrough=yes protocol=udp
+add action=mark-connection chain=prerouting dst-port=27013 new-connection-mark=Jogos-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting dst-port=27013 new-connection-mark=Jogos-Conexao passthrough=yes protocol=udp
+add action=mark-packet chain=prerouting connection-mark=Jogos-Conexao new-packet-mark=Jogos-Pacotes passthrough=no
+add action=mark-connection chain=prerouting comment="CONTROLE UDP" new-connection-mark=UDP-Conexao passthrough=yes protocol=udp
+add action=mark-packet chain=prerouting connection-mark=UDP-Conexao new-packet-mark=UDP-Pacotes passthrough=no
+add action=mark-connection chain=prerouting comment="CONTROLE SERVICOS NAO IDENTIFICADOS" new-connection-mark=Outros-Conexao passthrough=yes
+add action=mark-packet chain=prerouting connection-mark=Outros-Conexao new-packet-mark=Outros-Pacotes passthrough=no
+add action=mark-connection chain=prerouting comment="CONTROLE NAVEGACAO" disabled=yes dst-port=443 new-connection-mark=Navegacao-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting disabled=yes dst-port=80 new-connection-mark=Navegacao-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting disabled=yes dst-port=53 new-connection-mark=Navegacao-Conexao passthrough=yes protocol=tcp
+add action=mark-connection chain=prerouting disabled=yes dst-port=53 new-connection-mark=Navegacao-Conexao passthrough=yes protocol=udp
+add action=mark-connection chain=prerouting disabled=yes dst-port=21 new-connection-mark=Navegacao-Conexao passthrough=yes protocol=tcp
+add action=mark-packet chain=prerouting connection-mark=Navegacao-Conexao disabled=yes new-packet-mark=Navegacao-Pacotes passthrough=no
+add action=mark-packet chain=postrouting comment="PACOTES HTTP" connection-bytes=0-10000000 dst-address-list=!SpeedTest_HOST new-packet-mark=HTTP_PK_DL passthrough=no protocol=tcp src-address-list=!SpeedTest_HOST src-port=80,8080
+add action=mark-packet chain=postrouting connection-bytes=0-5000000 dst-address-list=!SpeedTest_HOST dst-port=80,8080 new-packet-mark=HTTP_PK_UL passthrough=no protocol=tcp src-address-list=!SpeedTest_HOST
+add action=mark-packet chain=postrouting comment="PACOTES HTTPS" dst-address-list=!Streaming_HOST new-packet-mark=HTTPS_PK_DL passthrough=no protocol=tcp src-address-list=!Streaming_HOST src-port=443
+add action=mark-packet chain=postrouting dst-address-list=!Streaming_HOST dst-port=443 new-packet-mark=HTTPS_PK_UL passthrough=no protocol=tcp src-address-list=!Streaming_HOST
+add action=add-src-to-address-list address-list=Streaming_HOST address-list-timeout=6h chain=prerouting connection-mark=Streaming_Conn
+add action=mark-packet chain=postrouting comment="MARCAR  PACOTE STREAMING" new-packet-mark=Streaming_PK passthrough=no src-address-list=Streaming_HOST
+add action=add-src-to-address-list address-list=P2P-HOST address-list-timeout=1h chain=prerouting connection-mark=P2P_Conn
+add action=mark-packet chain=postrouting comment="MARCAR PACOTES P2P" new-packet-mark=P2P_PK_DL passthrough=no src-address-list=P2P-HOST
+add action=mark-packet chain=postrouting dst-address-list=P2P-HOST new-packet-mark=P2P_PK_UL passthrough=no
+add action=add-src-to-address-list address-list=SpeedTest_HOST address-list-timeout=50s chain=prerouting connection-mark=SpeedTest_Conn
+add action=add-src-to-address-list address-list=Worm-Infected-p445 address-list-timeout=1h chain=prerouting connection-state=new dst-port=445 limit=5,10 protocol=tcp
 /
 /
 /ip firewall layer7-protocol
-add name=L7_File regexp="\\.(exe|rar|zip|7z|cab|asf|mov|vob|wmv|mpg|mpeg|mkv|avi|flv|wav|rm|mp3|mp|r\
-    am|rmvb|dat|daa|iso|nrg|bin|vcd|3gp|aac|ace|aif|arj|bz2|gz|gzip|img|lzh|m4a|m4v|mpa|mpe|msi|msu|\
-    ogg|ogv|pdf|plj|pps|ppt|qt|ro*|r1*|ra|rm|sea|sit|sitx|tar|tif|tiff|z|001|002|003|004|005)"
+add name=L7_File regexp="\\.(exe|rar|zip|7z|cab|asf|mov|vob|wmv|mpg|mpeg|mkv|avi|flv|wav|rm|mp3|mp|ram|rmvb|dat|daa|iso|nrg|bin|vcd|3gp|aac|ace|aif|arj|bz2|gz|gzip|img|lzh|m4a|m4v|mpa|mpe|msi|msu|ogg|ogv|pdf|plj|pps|ppt|qt|ro*|r1*|ra|rm|sea|sit|sitx|\
+    tar|tif|tiff|z|001|002|003|004|005)"
 add name=L7_Streaming regexp=videoplayback|video
-add name=L7_SpeedTest regexp="speedtest.3bb.co.th|speedtest.adslthailand.com|speedtest1.totbb.net|sp\
-    eedtest.net|speedtest.trueinternet.co.th|catspeedtest.net"
-add name=p2p_www regexp="^.*(get|GET).+(torrent|thepiratebay|isohunt|entertane|demonoid|btjunkie|min\
-    inova|flixflux|vertor|h33t|zoozle|bitnova|bitsoup|meganova|fulldls|btbot|fenopy|gpirate|commonbi\
-    ts).*\$"
-add name=p2p_dns regexp="^.+(torrent|thepiratebay|isohunt|entertane|demonoid|btjunkie|mininova|flixf\
-    lux|vertor|h33t|zoozle|bitnova|bitsoup|meganova|fulldls|btbot|fenopy|gpirate|commonbits).*\$"
-add comment="TOR Layer7" name=L7-Torrent regexp="^(\\x13bittorrent protocol|azver\\x01\$|get /scrape\
-    \\\?info_hash=get /announce\\\?info_hash=|get /client/bitcomet/|GET /data\\\?fid=)|d1:ad2:id20:|\
-    \\x08'7P\\)[RP]"
-add comment="Block Bit Torrent" name=layer7-bittorrent-exp regexp="^(\\x13bittorrent protocol|azver\
-    \\x01\$|get /scrape\\\?info_hash=get /announce\\\?info_hash=|get /client/bitcomet/|GET /data\\\?\
-    fid=)|d1:ad2:id20:|\\x08'7P\\)[RP]"
-/
+add name=L7_SpeedTest regexp=speedtest.3bb.co.th|speedtest.adslthailand.com|speedtest1.totbb.net|speedtest.net|speedtest.trueinternet.co.th|catspeedtest.net
+add name=p2p_www regexp="^.*(get|GET).+(torrent|thepiratebay|isohunt|entertane|demonoid|btjunkie|mininova|flixflux|vertor|h33t|zoozle|bitnova|bitsoup|meganova|fulldls|btbot|fenopy|gpirate|commonbits).*\$"
+add name=p2p_dns regexp="^.+(torrent|thepiratebay|isohunt|entertane|demonoid|btjunkie|mininova|flixflux|vertor|h33t|zoozle|bitnova|bitsoup|meganova|fulldls|btbot|fenopy|gpirate|commonbits).*\$"
+add comment="TOR Layer7" name=L7-Torrent regexp="^(\\x13bittorrent protocol|azver\\x01\$|get /scrape\\\?info_hash=get /announce\\\?info_hash=|get /client/bitcomet/|GET /data\\\?fid=)|d1:ad2:id20:|\\x08'7P\\)[RP]"
+add comment="Block Bit Torrent" name=layer7-bittorrent-exp regexp="^(\\x13bittorrent protocol|azver\\x01\$|get /scrape\\\?info_hash=get /announce\\\?info_hash=|get /client/bitcomet/|GET /data\\\?fid=)|d1:ad2:id20:|\\x08'7P\\)[RP]"
 /
 /
 ##Criando o controle de banda:
@@ -213,26 +115,16 @@ add kind=pcq name=PCQ_ICMP pcq-classifier=dst-address pcq-rate=4M
 add kind=pcq name=QOS_UDP pcq-classifier=dst-address pcq-rate=4M
 /queue tree
 add max-limit=300M name="5 QOS_Servi\E7os" parent=global queue=default
-add disabled=yes max-limit=100M name="1 QOS Navegacao" packet-mark=Navegacao-Pacotes parent=\
-    "5 QOS_Servi\E7os" priority=1 queue=default
-add max-limit=10M name="2 - Messenger" packet-mark=Messenger-Pacotes parent="5 QOS_Servi\E7os" \
-    priority=2 queue=PCQ_Messenger
-add max-limit=10M name="2 - E-mail" packet-mark=E-mail-Pacotes parent="5 QOS_Servi\E7os" priority=3 \
-    queue=PCQ_Email
-add disabled=yes max-limit=128k name="8 - P2P" packet-mark=P2P-Pacotes parent="5 QOS_Servi\E7os" \
-    queue=default
-add max-limit=300M name="4 - Acesso-Remoto" packet-mark=Acesso-Remoto-Pacotes parent=\
-    "5 QOS_Servi\E7os" priority=2 queue=PCQ_Remoto
-add max-limit=2M name="5 - ICMP" packet-mark=ICMP-Pacotes parent="5 QOS_Servi\E7os" priority=1 \
-    queue=PCQ_ICMP
-add max-limit=4M name="6 - UDP" packet-mark=UDP-Pacotes parent="5 QOS_Servi\E7os" priority=3 queue=\
-    QOS_UDP
-add max-limit=20M name="7 - Outros" packet-mark=Outros-Pacotes parent="5 QOS_Servi\E7os" queue=\
-    default
-add max-limit=20M name="3 - Banco-Dados" packet-mark=Banco-Dados-Pacotes parent="5 QOS_Servi\E7os" \
-    priority=3 queue=PCQ_Databases
-add max-limit=300M name="3 - Jogos" packet-mark=Jogos-Pacotes parent="5 QOS_Servi\E7os" priority=3 \
-    queue=PCQ_Games
+add disabled=yes max-limit=100M name="1 QOS Navegacao" packet-mark=Navegacao-Pacotes parent="5 QOS_Servi\E7os" priority=1 queue=default
+add max-limit=10M name="2 - Messenger" packet-mark=Messenger-Pacotes parent="5 QOS_Servi\E7os" priority=2 queue=PCQ_Messenger
+add max-limit=10M name="2 - E-mail" packet-mark=E-mail-Pacotes parent="5 QOS_Servi\E7os" priority=3 queue=PCQ_Email
+add disabled=yes max-limit=128k name="8 - P2P" packet-mark=P2P-Pacotes parent="5 QOS_Servi\E7os" queue=default
+add max-limit=300M name="4 - Acesso-Remoto" packet-mark=Acesso-Remoto-Pacotes parent="5 QOS_Servi\E7os" priority=2 queue=PCQ_Remoto
+add max-limit=2M name="5 - ICMP" packet-mark=ICMP-Pacotes parent="5 QOS_Servi\E7os" priority=1 queue=PCQ_ICMP
+add max-limit=4M name="6 - UDP" packet-mark=UDP-Pacotes parent="5 QOS_Servi\E7os" priority=3 queue=QOS_UDP
+add max-limit=20M name="7 - Outros" packet-mark=Outros-Pacotes parent="5 QOS_Servi\E7os" queue=default
+add max-limit=20M name="3 - Banco-Dados" packet-mark=Banco-Dados-Pacotes parent="5 QOS_Servi\E7os" priority=3 queue=PCQ_Databases
+add max-limit=300M name="3 - Jogos" packet-mark=Jogos-Pacotes parent="5 QOS_Servi\E7os" priority=3 queue=PCQ_Games
 add name=Download packet-mark=P2P_PK_DL parent=1.QOS_P2P queue=PCQ_P2P_DL
 add name=Upload packet-mark=P2P_PK_UL parent=1.QOS_P2P queue=PCQ_P2P_UL
 add name=File packet-mark=File_PK parent=2.QOS_File priority=7 queue=PCQ_File
@@ -243,10 +135,6 @@ add name=1.HTTP_UL packet-mark=HTTP_PK_UL parent=W_Upload priority=1 queue=PCQ_H
 add name=2.HTTPS_UL packet-mark=HTTPS_PK_UL parent=W_Upload priority=1 queue=PCQ_HTTPS_UL
 /
 /
-/system ntp client
-set enabled=yes mode=unicast primary-ntp=a.ntp.br
-set enabled=yes mode=unicast secondary-ntp=b.ntp.br
-/
 /system clock
 set time-zone-name=America/Sao_Paulo
 /
@@ -254,20 +142,25 @@ set time-zone-name=America/Sao_Paulo
 set note="\t\t\t\t\t\t\t\t\t\t\t\r\
     \n\t*************************************************************\r\
     \n\t*************************************************************\r\
-    \n\t*************************************************************\r\
-    \n\t*****=======================AVISO!=======================****\r\
-    \n        ********<DOMINIO DE REDE PRIVADA - PROIBIDO O ACESSO>********\r\
-    \n\t*************************************************************\r\
     \n\t************************************************************* \r\
+    \n\t   :'######::'########:'##::::'##::::'########::::::'####:\r\
+    \n\t   '##... ##: ##.....:: ##:::: ##::::... ##..:::::::. ##::\r\
+    \n\t    ##:::..:: ##::::::: ##:::: ##::::::: ##:::::::::: ##::\r\
+    \n\t   . ######:: ######::: ##:::: ##::::::: ##:::::::::: ##::\r\
+    \n\t   :..... ##: ##...:::: ##:::: ##::::::: ##:::::::::: ##::\r\
+    \n\t   '##::: ##: ##::::::: ##:::: ##::::::: ##::::'###:: ##::\r\
+    \n\t   . ######:: ########:. #######:::::::: ##:::: ###:'####:\r\
+    \n\t   :......:::........:::.......:::::::::..:::::...::....::\r\
     \n\t*************************************************************\r\
     \n\r\
-    \n\t\t  ############################################# \r\
-    \n\t\t  ###########Server Configuration By########### \r\
+    \n\t\t  #############################################\r\
+    \n\t\t  ###########Server Configuration By###########\r\
     \n\t\t  #################<ALE PONCE>#################\r\
     \n\t\t  ###############(www.seuti.net)###############\r\
     \n\t\t  #############################################"
 /
+/
 ########################################  /\  ###
 ################# FIM ################## /  \ ###
-## Volte ao inicio e veja se teve erros   ||  ### 
+## Volte ao inicio e veja se teve erros   ||  ###
 ########################################  ||  ###
