@@ -1,0 +1,24 @@
+como Bloquear o  Youtube  com "Layer 7" ou "Content" ou "TLS" 
+
+Bloqueio Youtube com "Layer-7"
+
+/ip firewall layer7-protocol
+add name=Youtube regexp="^.+(youtube.com|googlevideo.com).*\$"
+/ip firewall filter
+add action=drop chain=forward layer7-protocol=Youtube
+
+Bloqueio Youtube com "Content"
+
+/ip firewall filter
+add action=drop chain=forward content="youtube.com" 
+add action=drop chain=forward content="googlevideo.com"
+add action=drop chain=forward content=".youtube."
+add action=drop chain=forward content=".googlevideo."
+
+Bloqueio Youtube com "TLS"
+
+/ip firewall filter
+add action=drop chain=forward protocol=tcp tls-host="youtube.com"
+add action=drop chain=forward protocol=tcp tls-host="googlevideo.com"
+add action=drop chain=forward protocol=tcp tls-host="*.youtube.*"
+add action=drop chain=forward protocol=tcp tls-host="*.googlevideo.*"
