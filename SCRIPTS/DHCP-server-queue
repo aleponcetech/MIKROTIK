@@ -1,3 +1,15 @@
+/ip dhcp-server lease
+:foreach x in=[find] do={
+ 
+# grab variables for use below
+:local leaseaddr ([get $x address]."/32")
+:local leasemacaddr [get $x mac-address]
+:local leasehostname [get $x host-name]
+:local leasename [get $x comment]
+:local queuecomment
+ 
+:local leaseinqueue false
+ 
 /queue simple
 :foreach y in=[find] do={
  
